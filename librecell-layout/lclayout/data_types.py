@@ -76,8 +76,8 @@ class Transistor:
     def __hash__(self):
         return hash(self.__key())
 
-    def __eq__(x, y):
-        return x.__key() == y.__key()
+    def __eq__(self, rhs):
+        return self.__key() == rhs.__key()
 
     def __repr__(self):
         return "({}, {}, {})".format(self.source_net, self.gate_net, self.drain_net)
