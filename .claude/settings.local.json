@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(find /d/code/claude-workspace/librecell -maxdepth 2 -type f -name *.toml -o -name setup.py -o -name setup.cfg -o -name pyproject.toml)",
-      "Bash(find /d/code/claude-workspace/librecell -name test_* -o -name *_test.py)",
-      "Bash(pip list:*)"
-    ]
-  }
-}
