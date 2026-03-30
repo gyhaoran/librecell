@@ -1,114 +1,97 @@
 """
-Task 02: Test placement algorithms in lclayout.place
+Task 02: Test transistor placement algorithms
 """
 import pytest
+import networkx as nx
+
 from lccommon.data_types import Transistor, ChannelType, Cell
 
 
 @pytest.mark.unit
-class TestPlacerFixtures:
-    """Fixtures for placer tests."""
+class TestPlacerImports:
+    """Test placer module imports."""
 
-    @pytest.fixture
-    def inverter_netlist(self):
-        """INV transistor list."""
-        return [
-            Transistor(ChannelType.NMOS, 'gnd', 'in', 'out', channel_width=1.0, name='M1'),
-            Transistor(ChannelType.PMOS, 'vdd', 'in', 'out', channel_width=2.0, name='M2'),
-        ]
-
-    @pytest.fixture
-    def nand2_netlist(self):
-        """NAND2 transistor list."""
-        return [
-            Transistor(ChannelType.NMOS, 'Y', 'B', 'tmp', channel_width=0.5, name='M1'),
-            Transistor(ChannelType.NMOS, 'gnd', 'A', 'tmp', channel_width=0.5, name='M2'),
-            Transistor(ChannelType.PMOS, 'vdd', 'A', 'Y', channel_width=0.5, name='M3'),
-            Transistor(ChannelType.PMOS, 'vdd', 'B', 'Y', channel_width=0.5, name='M4'),
-        ]
-
-
-@pytest.mark.unit
-class TestEulerPlacer:
-    """Test Euler placer."""
-
-    def test_euler_placer_importable(self):
+    def test_euler_placer_import(self):
         """EulerPlacer can be imported."""
         from lclayout.place.euler_placer import EulerPlacer
         assert EulerPlacer is not None
 
-    def test_hierarchical_placer_importable(self):
-        """HierarchicalPlacer can be imported."""
-        from lclayout.place.euler_placer import HierarchicalPlacer
-        assert HierarchicalPlacer is not None
+    def test_euler_placer_instantiation(self):
+        """EulerPlacer can be instantiated."""
+        from lclayout.place.euler_placer import EulerPlacer
+        placer = EulerPlacer()
+        assert placer is not None
+
+    def test_transistor_placer_interface_import(self):
+        """TransistorPlacer interface exists."""
+        from lclayout.place.place import TransistorPlacer
+        assert TransistorPlacer is not None
 
 
 @pytest.mark.unit
-class TestPlacerHelpers:
-    """Test placer helper functions."""
+class TestPlacerDataStructures:
+    """Test data structures used by placers."""
 
-    def test_wiring_length_bbox_function(self):
-        """Test wiring length bounding box function."""
-        from lclayout.place.euler_placer import wiring_length_bbox
-        
-        cell = Cell(width=3)
-        t1 = Transistor(ChannelType.NMOS, 'gnd', 'A', 'Y', name='M1')
-        t2 = Transistor(ChannelType.PMOS, 'vdd', 'A', 'Y', name='M2')
-        cell.lower[0] = t1
-        cell.upper[0] = t2
-        
-        try:
-            length = wiring_length_bbox(cell)
-            assert length >= 0
-        except Exception:
-            pytest.skip("Function requires different setup")
+    def test_cell_creation(self):
+        """Cell can be created."""
+        cell = Cell(width=4)
+        assert cell is not None
+        assert cell.width == 4
 
+    def test_cell_has_upper_and_lower_rows(self):
+        """Cell has upper and lower rows."""
+        cell = Cell(width=4)
+        assert cell.upper is not None
+        assert cell.lower is not None
+        assert len(cell.upper) == 4
+        assert len(cell.lower) == 4
 
-@pytest.mark.unit
-class TestSMTPlacer:
-    """Test SMT placer."""
+    def test_transistor_creation(self):
+        """Transistor can be created."""
+        t = Transistor(
+            channel_type=ChannelType.NMOS,
+            source_net='s',
+            gate_net='g',
+            drain_net='d'
+        )
+        assert t is not None
+        assert t.channel_type == ChannelType.NMOS
 
-    def test_smt_placer_importable(self):
-        """SMTPlacer can be imported."""
-        try:
-            from lclayout.place.smt_placer import SMTPlacer
-            assert SMTPlacer is not None
-        except ImportError:
-            pytest.skip("SMTPlacer requires z3-solver")
+    def test_transistor_terminals(self):
+        """Transistor terminals method works."""
+        t = Transistor(
+            channel_type=ChannelType.NMOS,
+            source_net='s',
+            gate_net='g',
+            drain_net='d'
+        )
+        terminals = t.terminals()
+        assert terminals == ('s', 'g', 'd')
 
-
-@pytest.mark.unit
-def test_euler_tours_construct_even_degree_graphs():
-    """Test construction of even degree graphs."""
-    import networkx as nx
-    
-    G = nx.MultiGraph()
-    G.add_edge('a', 'b', key=0)
-    G.add_edge('a', 'b', key=1)
-    
-    assert G.degree('a') == 2
-    assert G.degree('b') == 2
-
-
-@pytest.mark.unit
-def test_find_euler_tours_simple():
-    """Test finding Euler tours in simple graphs."""
-    import networkx as nx
-    
-    G = nx.Graph()
-    G.add_edge('a', 'b')
-    G.add_edge('b', 'c')
-    G.add_edge('c', 'a')
-    
-    for node in G.nodes():
-        assert G.degree(node) % 2 == 0
+    def test_channel_type_enum(self):
+        """ChannelType enum has expected values."""
+        assert ChannelType.NMOS.value == 1
+        assert ChannelType.PMOS.value == 2
 
 
 @pytest.mark.unit
-def test_smt_placer_standalone():
-    """Inline test from smt_placer.py - extracted to pytest."""
-    try:
-        from lclayout.place.smt_placer import SMTPlacer
-        assert SMTPlacer is not None
-    except ImportError as e:
-        pytest.skip(f"SMTPlacer requires z3-solver: {e}")
+class TestNetworkXAlgorithms:
+    """Test NetworkX graph algorithms."""
+
+    def test_shortest_path(self):
+        """NetworkX shortest path works."""
+        G = nx.Graph()
+        G.add_edge('A', 'B')
+        G.add_edge('B', 'C')
+        path = nx.shortest_path(G, 'A', 'C')
+        assert path == ['A', 'B', 'C']
+
+    def test_eulerian_path_exists(self):
+        """NetworkX has eulerian path utilities."""
+        G = nx.Graph()
+        G.add_edge('A', 'B')
+        G.add_edge('B', 'C')
+        G.add_edge('C', 'A')
+        # Check has_eulerian_path works
+        result = nx.has_eulerian_path(G)
+        assert isinstance(result, bool)

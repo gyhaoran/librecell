@@ -53,7 +53,6 @@ def inverter_transistors():
     """Return a simple inverter transistor list for testing."""
     from lccommon.data_types import Transistor, ChannelType
     return [
-        # NMOS
         Transistor(
             channel_type=ChannelType.NMOS,
             source_net='gnd',
@@ -62,7 +61,6 @@ def inverter_transistors():
             channel_width=1.0,
             name='M1'
         ),
-        # PMOS
         Transistor(
             channel_type=ChannelType.PMOS,
             source_net='vdd',
@@ -75,6 +73,61 @@ def inverter_transistors():
 
 
 @pytest.fixture
+def nand2_transistors():
+    """Return NAND2 transistor list for testing."""
+    from lccommon.data_types import Transistor, ChannelType
+    return [
+        # NMOS series stack
+        Transistor(ChannelType.NMOS, 'Y', 'B', 'tmp', channel_width=0.5, name='M1'),
+        Transistor(ChannelType.NMOS, 'gnd', 'A', 'tmp', channel_width=0.5, name='M2'),
+        # PMOS parallel
+        Transistor(ChannelType.PMOS, 'vdd', 'A', 'Y', channel_width=0.5, name='M3'),
+        Transistor(ChannelType.PMOS, 'vdd', 'B', 'Y', channel_width=0.5, name='M4'),
+    ]
+
+
+@pytest.fixture
+def klayout_layout():
+    """Create a KLayout Layout object for testing."""
+    import klayout.db as db
+    layout = db.Layout()
+    return layout
+
+
+@pytest.fixture
+def euler_placer():
+    """Create an EulerPlacer instance for testing."""
+    from lclayout.place.euler_placer import EulerPlacer
+    return EulerPlacer()
+
+
+@pytest.fixture
+def graph_router():
+    """Create a GraphRouter instance for testing."""
+    from lclayout.graphrouter.graphrouter import RoutingGraph
+    return RoutingGraph()
+
+
+@pytest.fixture
+def lclayout_instance(dummy_tech, klayout_layout):
+    """Create a properly configured LcLayout instance."""
+    from lclayout.standalone import LcLayout
+    from lclayout.place.euler_placer import EulerPlacer
+    from lclayout.graphrouter.graphrouter import GraphRouter
+    
+    placer = EulerPlacer()
+    router = GraphRouter()
+    
+    layout = LcLayout(
+        tech=dummy_tech,
+        layout=klayout_layout,
+        placer=placer,
+        router=router
+    )
+    return layout
+
+
+@pytest.fixture
 def tmp_output_dir():
     """Create a temporary output directory for test artifacts."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -84,7 +137,6 @@ def tmp_output_dir():
 @pytest.fixture
 def tech_config(dummy_tech):
     """Return a dict-like object with tech config attributes from dummy_tech module."""
-    # Create a simple namespace with the key attributes from dummy_tech
     class TechConfig:
         def __init__(self, module):
             self.unit_cell_width = getattr(module, 'unit_cell_width', None)
