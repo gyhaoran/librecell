@@ -13,7 +13,6 @@
 #
 from ..place.place import Transistor, ChannelType
 
-from .layers import *
 from typing import Any, Dict, List, Optional, Set, Tuple
 import sys
 
@@ -89,17 +88,17 @@ class DefaultTransistorLayout(TransistorLayout):
 
         # Get either the ndiffusion or pdiffusion layer.
         if abstract_transistor.channel_type == ChannelType.NMOS:
-            l_diffusion = l_ndiffusion
-            l_diff_contact = l_ndiff_contact
+            l_diffusion = 'ndiffusion'
+            l_diff_contact = 'ndiff_contact'
         else:
-            l_diffusion = l_pdiffusion
-            l_diff_contact = l_pdiff_contact
+            l_diffusion = 'pdiffusion'
+            l_diff_contact = 'pdiff_contact'
 
         # Diffusion layer.
         self.l_diffusion = l_diffusion
 
         # Calculate minimal distance from active region to upper and lower cell boundaries.
-        poly_half_spacing = (tech.min_spacing[(l_poly, l_poly)] + 1) // 2
+        poly_half_spacing = (tech.min_spacing[('poly', 'poly')] + 1) // 2
         active_half_spacing = (tech.min_spacing[(l_diffusion, l_diffusion)] + 1) // 2
         # Distance from active to active in neighbouring cell must be kept,
         # as well as distance from poly to poly in neighbouring cell.
@@ -142,7 +141,7 @@ class DefaultTransistorLayout(TransistorLayout):
         # Enclose active regions of PMOS transistors with l_nwell.
 
         # Get layer depending on channel type.
-        l_well = l_nwell if abstract_transistor.channel_type == ChannelType.PMOS else l_pwell
+        l_well = 'nwell' if abstract_transistor.channel_type == ChannelType.PMOS else 'pwell'
         # Well layer.
         self.l_well = l_well
 
@@ -187,8 +186,8 @@ class DefaultTransistorLayout(TransistorLayout):
         # Create gate terminals.
         terminals = {
             abstract_transistor.gate_net: [
-                (l_poly, (center_x, gate_top)),
-                (l_poly, (center_x, gate_bottom))
+                ('poly', (center_x, gate_top)),
+                ('poly', (center_x, gate_bottom))
             ]
         }
 
@@ -227,5 +226,5 @@ class DefaultTransistorLayout(TransistorLayout):
         shapes[self.l_diffusion].insert(self._drain_box).set_property('net', self.abstract_transistor.drain_net)
 
         # Create gate shape.
-        inst = shapes[l_poly].insert(self._gate_path)
+        inst = shapes['poly'].insert(self._gate_path)
         inst.set_property('net', self.abstract_transistor.gate_net)

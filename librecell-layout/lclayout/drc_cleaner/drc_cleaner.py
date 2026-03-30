@@ -29,7 +29,6 @@ from pysmt.fnode import FNode
 from pysmt.solvers.z3 import Z3Model, Z3Converter
 
 import math
-from ..layout.layers import *
 
 logger = logging.getLogger(__name__)
 
@@ -254,9 +253,9 @@ def clean(tech,
 
     # Fix via shapes but allow them to be moved.
     logger.debug("Assuming immutable via shapes.")
-    via_layers = set(tech.via_layers.nodes())
-    logger.debug("Add constraint for relative immutable shapes: {}".format(via_layers))
-    relative_fixed_layers = via_layers
+    via_layer_nodes = set(tech.via_layers.nodes())
+    logger.debug("Add constraint for relative immutable shapes: {}".format(via_layer_nodes))
+    relative_fixed_layers = via_layer_nodes
     for l in relative_fixed_layers:
         for poly in sym_polys[l]:
             add_assertion(cleaner.preserve_shape(poly),
@@ -269,16 +268,29 @@ def clean(tech,
             add_assertion(poly.assert_preserved_edge_orientation(),
                           named='fixed edge orientation ({})'.format(l))
 
-    # TODO: more generic, based on technology file
-    containtement_constraints = [
-        # Syntax ([Container shapes], [shapes that must be inside the container shape, ...])
-        ([l_abutment_box], [l_ndiffusion, l_pdiffusion, l_ndiff_contact, l_pdiff_contact, l_poly_contact, l_via1, l_poly, l_metal1, l_metal2]),
-        ([l_ndiffusion], [l_ndiff_contact]),
-        ([l_pdiffusion], [l_pdiff_contact]),
-        ([l_poly], [l_poly_contact]),
-        ([l_metal1], [l_poly_contact, l_ndiff_contact, l_pdiff_contact, l_via1]),
-        ([l_metal2], [l_via1]),
-    ]
+    # Build containment constraints dynamically from tech/via connectivity
+    containtement_constraints = []
+
+    # All routable/drawable layers must be inside abutment_box
+    all_inner_layers = [name for name in shapes.keys() if name != 'abutment_box']
+    if 'abutment_box' in shapes:
+        containtement_constraints.append((['abutment_box'], all_inner_layers))
+
+    # Diffusion contains its contacts
+    if 'ndiffusion' in shapes and 'ndiff_contact' in shapes:
+        containtement_constraints.append((['ndiffusion'], ['ndiff_contact']))
+    if 'pdiffusion' in shapes and 'pdiff_contact' in shapes:
+        containtement_constraints.append((['pdiffusion'], ['pdiff_contact']))
+    if 'poly' in shapes and 'poly_contact' in shapes:
+        containtement_constraints.append((['poly'], ['poly_contact']))
+
+    # Metal layers contain their vias (from via connectivity graph)
+    for l1, l2, data in tech.via_layers.edges(data=True):
+        via_name = data['layer']
+        if via_name in shapes:
+            for outer in (l1, l2):
+                if outer in shapes:
+                    containtement_constraints.append(([outer], [via_name]))
 
     def assert_inside_naive(outer_poly: SOPolygon, inner_poly: SOPolygon, min_inside=1) -> FNode:
         """ Create a constraint that asserts that `inner_poly` is contained in `outer_poly`.

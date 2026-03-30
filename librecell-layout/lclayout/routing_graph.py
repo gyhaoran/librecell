@@ -18,7 +18,6 @@ from collections import defaultdict
 from .layout.grid_helpers import *
 from .layout.geometry_helpers import *
 from .layout.grid import Grid2D
-from .layout.layers import *
 from .layout.transistor import TransistorLayout
 from .data_types import Transistor
 from . import tech_util
@@ -29,7 +28,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def create_routing_graph_base(grid: Grid2D, tech) -> nx.Graph:
+def create_routing_graph_base(grid: Grid2D, tech, via_layers) -> nx.Graph:
     """ Construct the full mesh of the routing graph.
     :param grid: grid points
     :param tech: module containing technology information
@@ -115,7 +114,7 @@ def _get_routing_node_locations_per_layer(g: nx.Graph) -> Dict[Any, Set[Tuple[in
     return routing_nodes
 
 
-def remove_illegal_routing_edges(graph: nx.Graph, shapes: Dict[Any, pya.Shapes], tech) -> None:
+def remove_illegal_routing_edges(graph: nx.Graph, shapes: Dict[Any, pya.Shapes], tech, via_layers) -> None:
     """ Remove nodes and edges from  G that would conflict
     with predefined `shapes`.
     :param graph: routing graph.
@@ -200,7 +199,8 @@ def remove_existing_routing_edges(G: nx.Graph, shapes: Dict[Any, pya.Shapes], te
 
 def extract_terminal_nodes(graph: nx.Graph,
                            shapes: Dict[str, pya.Shapes],
-                           tech):
+                           tech,
+                           via_layers):
     """ Get terminal nodes for each net.
     :param graph: Routing graph.
     :param net_regions: Regions that are connected to a net: Dict[net, Dict[layer, pya.Region]]

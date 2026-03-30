@@ -19,6 +19,7 @@ from lccommon.tech_config import (
     RoutingConfig,
     TechConfig,
     ViaConfig,
+    ViaConnectivity,
 )
 
 logger = logging.getLogger(__name__)
@@ -176,6 +177,15 @@ def python_tech_to_config(module: Any) -> TechConfig:
         except TypeError:
             logger.warning("Skipping unknown writer type: %s", type(w))
 
+    # --- Via connectivity (from via_layers graph if present) ---
+    via_connectivity_list: List[ViaConnectivity] = []
+    raw_via_layers = _get("via_layers", None)
+    if raw_via_layers is not None and hasattr(raw_via_layers, 'edges'):
+        for l1, l2, data in raw_via_layers.edges(data=True):
+            via_connectivity_list.append(ViaConnectivity(
+                via=data['layer'], bottom=l1, top=l2,
+            ))
+
     return TechConfig(
         name=_get("__name__", "python_tech"),
         node="",
@@ -186,4 +196,5 @@ def python_tech_to_config(module: Any) -> TechConfig:
         via=via,
         output_map=output_map,
         writers=writer_configs,
+        via_connectivity=via_connectivity_list,
     )

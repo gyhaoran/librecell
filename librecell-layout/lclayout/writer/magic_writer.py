@@ -19,7 +19,6 @@ import itertools
 import os
 
 from .writer import Writer
-from ..layout import layers
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +100,8 @@ def store_layout_to_magic_file(tech_name: str,
                                top_cell: db.Cell,
                                output_file: str,
                                ignore_non_rectilinear: bool = False,
-                               scale_factor: int = 1):
+                               scale_factor: int = 1,
+                               layermap: Dict[str, Tuple[int, int]] = None):
     """
     Write the cell layout to a file in the Magic (.mag) format.
 
@@ -114,6 +114,10 @@ def store_layout_to_magic_file(tech_name: str,
     :return:
     """
 
+    if layermap is None:
+        from ..layout import layers as _layers_mod
+        layermap = _layers_mod.layermap
+
     layer_config = []
     for source_layer_name, destinations in output_map.items():
         assert isinstance(destinations, str) or isinstance(destinations, List), \
@@ -125,7 +129,7 @@ def store_layout_to_magic_file(tech_name: str,
         for dest_name in destinations:
             # Convert layer name into (index, datatype).
             layer_config.append(
-                Layer(dest_name, layers.layermap[source_layer_name])
+                Layer(dest_name, layermap[source_layer_name])
             )
 
     logger.info("Number of layers: {}".format(layout.layers()))

@@ -120,6 +120,13 @@ class ViaDefinition(BaseModel):
     size: float = 0
 
 
+class ViaConnectivity(BaseModel):
+    """Explicit via connectivity entry: via layer connects bottom to top."""
+    via: str
+    bottom: str
+    top: str
+
+
 class PowerDomain(BaseModel):
     """Power domain (supply + ground nets)."""
     name: str = "default"
@@ -153,9 +160,10 @@ class TechConfig(BaseModel):
     drc: DrcConfig = DrcConfig()
     via: ViaConfig = ViaConfig()
 
-    # Layer / via / power-domain definitions (optional, filled by Tasks 04-06)
+    # Layer / via / power-domain definitions
     layers: List[LayerDefinition] = []
     vias: List[ViaDefinition] = []
+    via_connectivity: List[ViaConnectivity] = []
     power_domains: List[PowerDomain] = Field(default_factory=lambda: [PowerDomain()])
 
     # Output map — internal layer name → GDS (layer, purpose) or list thereof.
@@ -175,6 +183,7 @@ class TechConfig(BaseModel):
     _minimum_enclosure_cache: Optional[Dict] = PrivateAttr(default=None)
     _via_weights_cache: Optional[Dict] = PrivateAttr(default=None)
     _multi_via_cache: Optional[Dict] = PrivateAttr(default=None)
+    _layer_stack_cache: Optional[Any] = PrivateAttr(default=None)
 
     # ------------------------------------------------------------------
     # Helpers: nested ↔ tuple-key conversion
@@ -420,17 +429,32 @@ class TechConfig(BaseModel):
         return instances
 
     # ------------------------------------------------------------------
-    # Legacy compat: via_layers / layermap (from layers.py, Task 04 replaces)
+    # LayerStack (cached, lazy)
+    # ------------------------------------------------------------------
+
+    @property
+    def layer_stack(self):
+        """Return (and cache) the LayerStack built from this config."""
+        if self._layer_stack_cache is None:
+            from lccommon.layer_stack import LayerStack
+            self._layer_stack_cache = LayerStack(self)
+        return self._layer_stack_cache
+
+    # ------------------------------------------------------------------
+    # Legacy compat: via_layers / layermap (now from LayerStack)
     # ------------------------------------------------------------------
 
     @property
     def via_layers(self):
-        """Return the via connectivity graph from layers.py (backward compat)."""
-        from lclayout.layout.layers import via_layers
-        return via_layers
+        """Return the via connectivity graph (from LayerStack)."""
+        return self.layer_stack.via_layers
 
     @property
     def layermap(self):
-        """Return the internal layermap from layers.py (backward compat)."""
-        from lclayout.layout.layers import layermap
-        return layermap
+        """Return the layer name → GDS mapping (from LayerStack)."""
+        return self.layer_stack.layermap
+
+    @property
+    def layermap_reverse(self):
+        """Return the GDS → layer name mapping (from LayerStack)."""
+        return self.layer_stack.layermap_reverse

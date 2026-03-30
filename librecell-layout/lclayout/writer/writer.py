@@ -11,7 +11,6 @@
 #
 # Source location: https://codeberg.org/tok/librecell
 #
-from ..layout import layers
 from klayout import db
 from typing import Dict, List, Tuple, Union
 
@@ -31,13 +30,18 @@ class Writer:
         pass
 
 
-def remap_layers(layout: db.Layout, output_map: Dict[str, Union[Tuple[int, int], List[Tuple[int, int]]]]) -> db.Layout:
+def remap_layers(layout: db.Layout, output_map: Dict[str, Union[Tuple[int, int], List[Tuple[int, int]]]], layermap_reverse: Dict[Tuple[int, int], str] = None) -> db.Layout:
     """
     Rename layer to match the scheme defined in the technology file.
     :param layout:
     :param output_map: Output mapping from layer names to layer numbers.
+    :param layermap_reverse: Reverse layermap (gds -> name). If None, imports from layers.py.
     :return:
     """
+    if layermap_reverse is None:
+        from ..layout import layers
+        layermap_reverse = layers.layermap_reverse
+
     logger.debug("Remap layers.")
     layout2 = db.Layout()
 
@@ -48,12 +52,12 @@ def remap_layers(layout: db.Layout, output_map: Dict[str, Union[Tuple[int, int],
 
             src_layer = (layer_info.layer, layer_info.datatype)
 
-            if src_layer not in layers.layermap_reverse:
+            if src_layer not in layermap_reverse:
                 msg = "Layer {} not defined in `layermap_reverse`.".format(src_layer)
                 logger.warning(msg)
                 dest_layers = src_layer
             else:
-                src_layer_name = layers.layermap_reverse[src_layer]
+                src_layer_name = layermap_reverse[src_layer]
 
                 if src_layer_name not in output_map:
                     msg = "Layer '{}' will not be written to the output. This might be alright though.". \

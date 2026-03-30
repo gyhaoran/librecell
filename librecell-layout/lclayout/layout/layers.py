@@ -80,7 +80,7 @@ def layer(idx: int,
         idx = int(a)
         purpose = int(b)
 
-    return AbstractLayer(idx, purpose, material=material)
+    return AbstractLayer(idx, purpose)
 
 
 class Mask:
@@ -100,9 +100,7 @@ class Mask:
         return Mask(self.region & other.region)
 
     def __sub__(self, other):
-        m = Mask(self.region - other.region)
-        m.material = self.material
-        return m
+        return Mask(self.region - other.region)
 
     def __xor__(self, other):
         return Mask(self.region ^ other.region)
@@ -114,9 +112,12 @@ class Mask:
         return self.region == other.region
 
 
-def eval_op_tree(cell: db.Cell, op_node: LayerOp) -> Mask:
+def eval_op_tree(cell: db.Cell, layout: db.Layout, op_node: LayerOp, selection_box=None) -> Mask:
     """ Recursively evaluate the layer operation tree.
+    :param cell: The cell to evaluate.
+    :param layout: The layout containing the cell.
     :param op_node: Operand node or leaf.
+    :param selection_box: Optional bounding box for region extraction.
     :return: Returns a `Mask` object containing a `pya.Region` of the layer.
     """
 
@@ -124,13 +125,13 @@ def eval_op_tree(cell: db.Cell, op_node: LayerOp) -> Mask:
         (idx, purpose) = op_node.eval()
         layer_index = layout.layer(idx, purpose)
 
-        region = _flatten_cell(cell, layer_index, selection_box=selection_box)
+        region = db.Region(cell.begin_shapes_rec(layer_index))
         result = Mask(region)
     else:
         assert isinstance(op_node, LayerOp)
         op = op_node.op
-        lhs = eval_op_tree(cell, op_node.lhs)
-        rhs = eval_op_tree(cell, op_node.rhs)
+        lhs = eval_op_tree(cell, layout, op_node.lhs, selection_box)
+        rhs = eval_op_tree(cell, layout, op_node.rhs, selection_box)
         result = op(lhs, rhs)
     result.region.merge()
 

@@ -12,7 +12,6 @@
 # Source location: https://codeberg.org/tok/librecell
 #
 from klayout import db
-from ..layout.layers import *
 from typing import Dict, List
 import logging
 
@@ -58,34 +57,48 @@ class MOS4To3NetlistSpiceReader(db.NetlistSpiceReaderDelegate):
             return True
 
 
-def extract_netlist(layout: db.Layout, top_cell: db.Cell) -> db.Netlist:
+def extract_netlist(layout: db.Layout, top_cell: db.Cell, layer_stack) -> db.Netlist:
     """
     Extract a device level netlist of 3-terminal MOSFETs from the cell `top_cell` of layout `layout`.
     :param layout: Layout object.
     :param top_cell: The top cell of the circuit.
+    :param layer_stack: LayerStack providing layermap and via connectivity.
     :return: Netlist as a `klayout.db.Circuit` object.
     """
 
     # Without netlist comparision capabilities.
     l2n = db.LayoutToNetlist(db.RecursiveShapeIterator(layout, top_cell, []))
 
-    def make_layer(layer_name: str):
-        return l2n.make_layer(layout.layer(*layermap[layer_name]), layer_name)
+    lm = layer_stack.layermap
 
-    rnwell = make_layer(l_nwell)
-    rpwell = make_layer(l_pwell)
-    rndiff = make_layer(l_ndiffusion)
-    rpdiff = make_layer(l_pdiffusion)
-    rpoly = make_layer(l_poly)
-    # rpoly_lbl = make_layer(l_poly_label)
-    rndiff_cont = make_layer(l_ndiff_contact)
-    rpdiff_cont = make_layer(l_pdiff_contact)
-    rpoly_cont = make_layer(l_poly_contact)
-    rmetal1 = make_layer(l_metal1)
-    rmetal1_lbl = make_layer(l_metal1_label)
-    rvia1 = make_layer(l_via1)
-    rmetal2 = make_layer(l_metal2)
-    rmetal2_lbl = make_layer(l_metal2_label)
+    def make_layer(layer_name: str):
+        return l2n.make_layer(layout.layer(*lm[layer_name]), layer_name)
+
+    rnwell = make_layer('nwell')
+    rpwell = make_layer('pwell')
+    rndiff = make_layer('ndiffusion')
+    rpdiff = make_layer('pdiffusion')
+    rpoly = make_layer('poly')
+    rndiff_cont = make_layer('ndiff_contact')
+    rpdiff_cont = make_layer('pdiff_contact')
+    rpoly_cont = make_layer('poly_contact')
+
+    # Build metal and via regions dynamically
+    metal_regions = {}
+    for metal_name in layer_stack.get_metal_layers():
+        metal_regions[metal_name] = make_layer(metal_name)
+
+    metal_label_regions = {}
+    for metal_name in layer_stack.get_metal_layers():
+        label_name = layer_stack.get_label_layer(metal_name)
+        if label_name and label_name in lm:
+            metal_label_regions[metal_name] = make_layer(label_name)
+
+    via_regions = {}
+    for l1, l2, data in layer_stack.via_layers.edges(data=True):
+        via_name = data['layer']
+        if via_name not in via_regions and via_name in lm:
+            via_regions[via_name] = make_layer(via_name)
 
     rdiff_cont = rndiff_cont + rpdiff_cont
     rpactive = rpdiff & rnwell
@@ -106,47 +119,49 @@ def extract_netlist(layout: db.Layout, top_cell: db.Cell) -> db.Netlist:
 
     # 3 terminal PMOS transistor device extraction
     pmos_ex = db.DeviceExtractorMOS3Transistor("PMOS")
-    l2n.extract_devices(pmos_ex, {"SD": rpsd, "G": rpgate, "W": rnwell, "tS": rpsd, "tD": rpsd, "tG": rpoly})
+    l2n.extract_devices(pmos_ex, {
+        "SD": rpsd, "G": rpgate, "W": rnwell,
+        "tS": rpsd, "tD": rpsd, "tG": rpoly,
+    })
 
     # 3 terminal NMOS transistor device extraction
     nmos_ex = db.DeviceExtractorMOS3Transistor("NMOS")
-    l2n.extract_devices(nmos_ex, {"SD": rnsd, "G": rngate, "W": rpwell, "tS": rnsd, "tD": rnsd, "tG": rpoly})
-
-    # # 4 terminal PMOS transistor device extraction
-    # pmos_ex = db.DeviceExtractorMOS4Transistor("PMOS")
-    # l2n.extract_devices(pmos_ex, {"SD": rpsd, "G": rpgate, "W": rnwell, "tS": rpsd, "tD": rpsd, "tG": rpoly, "tB": rnwell})
-    #
-    # # 4 terminal NMOS transistor device extraction
-    # nmos_ex = db.DeviceExtractorMOS4Transistor("NMOS")
-    # l2n.extract_devices(nmos_ex, {"SD": rnsd, "G": rngate, "W": rpwell, "tS": rnsd, "tD": rnsd, "tG": rpoly, "tB": rpwell})
+    l2n.extract_devices(nmos_ex, {
+        "SD": rnsd, "G": rngate, "W": rpwell,
+        "tS": rnsd, "tD": rnsd, "tG": rpoly,
+    })
 
     # Define connectivity for netlist extraction
 
     # Intra-layer
-    l2n.connect(rvia1)
+    for via_name, via_region in via_regions.items():
+        l2n.connect(via_region)
     l2n.connect(rpsd)
     l2n.connect(rnsd)
     l2n.connect(rpoly)
     l2n.connect(rdiff_cont)
     l2n.connect(rpoly_cont)
-    l2n.connect(rmetal1)
-    l2n.connect(rmetal2)
-    # TODO: what if more than 2 metal layers?
+    for metal_region in metal_regions.values():
+        l2n.connect(metal_region)
 
-    # Inter-layer
+    # Inter-layer: diffusion contacts
     l2n.connect(rpsd, rdiff_cont)
     l2n.connect(rnsd, rdiff_cont)
     l2n.connect(rpoly, rpoly_cont)
-    l2n.connect(rpoly_cont, rmetal1)
-    l2n.connect(rdiff_cont, rmetal1)
-    l2n.connect(rmetal1, rvia1)
-    l2n.connect(rvia1, rmetal2)
-    # l2n.connect(rpoly, rpoly_lbl)  # attaches labels
-    l2n.connect(rmetal1, rmetal1_lbl)  # attaches labels
-    l2n.connect(rmetal2, rmetal2_lbl)  # attaches labels
+    l2n.connect(rpoly_cont, metal_regions[layer_stack.get_metal_layers()[0]])
+    l2n.connect(rdiff_cont, metal_regions[layer_stack.get_metal_layers()[0]])
 
-    # l2n.connect_global(rnwell, 'NWELL') # VDD
-    # l2n.connect_global(rpwell, 'PWELL') # GND
+    # Inter-layer: via connectivity (dynamic for any number of metals)
+    for l1, l2, data in layer_stack.via_layers.edges(data=True):
+        via_name = data['layer']
+        # Only connect metal-to-metal vias (not contacts already handled above)
+        if via_name in via_regions and l1 in metal_regions and l2 in metal_regions:
+            l2n.connect(metal_regions[l1], via_regions[via_name])
+            l2n.connect(via_regions[via_name], metal_regions[l2])
+
+    # Label connectivity (dynamic)
+    for metal_name, label_region in metal_label_regions.items():
+        l2n.connect(metal_regions[metal_name], label_region)
 
     # Perform netlist extraction
     logger.debug("Extracting netlist from layout")
@@ -157,7 +172,6 @@ def extract_netlist(layout: db.Layout, top_cell: db.Cell) -> db.Netlist:
     netlist.purge()
     netlist.combine_devices()
     netlist.purge_nets()
-    # netlist.simplify()
 
     assert netlist.top_circuit_count() == 1, "A well formed netlist should have exactly one top circuit."
 

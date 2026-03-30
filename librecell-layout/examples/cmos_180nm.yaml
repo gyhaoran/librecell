@@ -127,6 +127,12 @@ via:
       poly: 1
       metal2: 1
 
+via_connectivity:
+  - {via: ndiff_contact, bottom: ndiffusion, top: metal1}
+  - {via: pdiff_contact, bottom: pdiffusion, top: metal1}
+  - {via: poly_contact, bottom: poly, top: metal1}
+  - {via: via1, bottom: metal1, top: metal2}
+
 output_map:
   ndiffusion: [1, 0]
   pdiffusion: [1, 7]

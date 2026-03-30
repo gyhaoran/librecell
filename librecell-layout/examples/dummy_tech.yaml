@@ -131,6 +131,14 @@ via:
       poly: 1
       metal2: 1
 
+# --- Via connectivity ---
+# Explicit via connections (bottom_layer <-> top_layer via via_layer)
+via_connectivity:
+  - {via: ndiff_contact, bottom: ndiffusion, top: metal1}
+  - {via: pdiff_contact, bottom: pdiffusion, top: metal1}
+  - {via: poly_contact, bottom: poly, top: metal1}
+  - {via: via1, bottom: metal1, top: metal2}
+
 # --- Output layer mapping ---
 # Maps internal layer names to GDS (layer, datatype) pairs.
 # A list of pairs means one-to-many mapping.

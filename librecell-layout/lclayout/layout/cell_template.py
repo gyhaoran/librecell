@@ -11,7 +11,6 @@
 #
 # Source location: https://codeberg.org/tok/librecell
 #
-from .layers import *
 from klayout import db
 from typing import Dict, Tuple
 
@@ -41,7 +40,7 @@ def draw_cell_template(shapes: Dict[str, db.Shapes],
     cell_width, cell_height = cell_shape
 
     # Draw abutment box.
-    shapes[l_abutment_box].insert(db.Box(0, 0, cell_width, cell_height))
+    shapes['abutment_box'].insert(db.Box(0, 0, cell_width, cell_height))
 
     # Draw nwell / pwell
 
@@ -58,10 +57,10 @@ def draw_cell_template(shapes: Dict[str, db.Shapes],
         db.Point(cell_width, nwell_end_y)
     )
 
-    shapes[l_nwell].insert(nwell_box)
+    shapes['nwell'].insert(nwell_box)
 
     pwell_box = db.Box(
         db.Point(0, pwell_start_y),
         db.Point(cell_width, pwell_end_y)
     )
-    shapes[l_pwell].insert(pwell_box)
+    shapes['pwell'].insert(pwell_box)

@@ -78,6 +78,7 @@ def _draw_routing_tree(shapes: Dict[str, pya.Shapes],
                        G: nx.Graph,
                        rt: nx.Graph,
                        tech,
+                       via_layers_graph,
                        debug_routing_graph: bool = False):
     """ Draw a routing graph into a layout.
     :param shapes: Mapping from layer name to pya.Shapes object
@@ -128,7 +129,7 @@ def _draw_routing_tree(shapes: Dict[str, pya.Shapes],
                 assert x1 == x2
                 assert y1 == y2
                 # Draw via
-                via_layer = via_layers[l1][l2]['layer']
+                via_layer = via_layers_graph[l1][l2]['layer']
                 logger.debug('Draw via: {} ({}, {})'.format(via_layer, x1, y1))
 
                 via_width = tech.via_size[via_layer]
@@ -218,6 +219,10 @@ class LcLayout:
         self.debug_routing_graph = debug_routing_graph
         self.debug_smt_solver = debug_smt_solver
 
+        # Build layer stack from tech config
+        from lccommon.layer_stack import LayerStack
+        self.layer_stack = LayerStack(tech)
+
         self.cell_name = None
         self.io_pins = None
         self.SUPPLY_VOLTAGE_NET = None
@@ -304,14 +309,14 @@ class LcLayout:
 
         # Setup layers.
         self.shapes = dict()
-        for name, (num, purpose) in layermap.items():
+        for name, (num, purpose) in self.layer_stack.layermap.items():
             layer = self.layout.layer(num, purpose)
             self.shapes[name] = self.top_cell.shapes(layer)
 
         if self.debug_routing_graph:
             # Layers for displaying routing terminals.
             self._routing_terminal_debug_layers = {
-                l: self.layout.layer(idx, 200) for l, (idx, _) in layermap.items()
+                l: self.layout.layer(idx, 200) for l, (idx, _) in self.layer_stack.layermap.items()
             }
 
     def _03_place_transistors(self):
@@ -350,7 +355,7 @@ class LcLayout:
         # Draw cell template.
         cell_template.draw_cell_template(self.shapes,
                                          cell_shape=(self._cell_width, self._cell_height),
-                                         nwell_pwell_spacing=self._spacing_graph[l_nwell][l_pwell]['min_spacing']
+                                         nwell_pwell_spacing=self._spacing_graph['nwell']['pwell']['min_spacing']
                                          )
 
         # Draw power rails.
@@ -383,10 +388,10 @@ class LcLayout:
                       (tech.routing_grid_pitch_x, tech.routing_grid_pitch_y))
 
         # Create base graph
-        G = create_routing_graph_base(grid, tech)
+        G = create_routing_graph_base(grid, tech, self.layer_stack.via_layers)
 
         # Remove illegal routing nodes from graph and get a dict of legal routing nodes per layer.
-        remove_illegal_routing_edges(G, self.shapes, tech)
+        remove_illegal_routing_edges(G, self.shapes, tech, self.layer_stack.via_layers)
 
         # if not debug_routing_graph:
         #     assert nx.is_connected(G)
@@ -395,7 +400,7 @@ class LcLayout:
         remove_existing_routing_edges(G, self.shapes, tech)
 
         # Create a list of terminal areas: [(net, layer, [terminal, ...]), ...]
-        terminals_by_net = extract_terminal_nodes(G, self.shapes, tech)
+        terminals_by_net = extract_terminal_nodes(G, self.shapes, tech, self.layer_stack.via_layers)
 
         # Embed transistor terminal nodes in to routing graph.
         embed_transistor_terminal_nodes(G, terminals_by_net, self._transistor_layouts, tech)
@@ -531,7 +536,7 @@ class LcLayout:
     def _08_draw_routes(self):
         # Draw the layout of the routes.
         for signal_name, rt in self._routing_trees.items():
-            _draw_routing_tree(self.shapes, self._routing_graph, rt, self.tech, self.debug_routing_graph)
+            _draw_routing_tree(self.shapes, self._routing_graph, rt, self.tech, self.layer_stack.via_layers, self.debug_routing_graph)
 
         # Merge the polygons on all layers.
         _merge_all_layers(self.shapes)
@@ -900,7 +905,7 @@ def main():
         reference_netlist.remove(c)
 
     # Extract netlist from layout.
-    extracted_netlist = lvs.extract_netlist(layout, cell)
+    extracted_netlist = lvs.extract_netlist(layout, cell, layouter.layer_stack)
 
     # Run LVS comparison of the two netlists.
     lvs_success = lvs.compare_netlist(extracted_netlist, reference_netlist)

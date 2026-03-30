@@ -28,12 +28,9 @@ def dummy_tech_path(project_root):
 
 @pytest.fixture(scope="session")
 def dummy_tech(dummy_tech_path):
-    """Load the dummy_tech.py configuration module."""
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("dummy_tech", dummy_tech_path)
-    dummy_tech_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(dummy_tech_module)
-    return dummy_tech_module
+    """Load the dummy_tech.py configuration as TechConfig."""
+    from lclayout.tech_util import load_tech_file
+    return load_tech_file(str(dummy_tech_path))
 
 
 @pytest.fixture(scope="session")
