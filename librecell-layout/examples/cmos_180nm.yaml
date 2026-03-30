@@ -1,0 +1,155 @@
+# CMOS 180nm technology configuration
+#
+# Based on dummy_tech.yaml with adjusted parameters for a 180nm process.
+# All dimensions in db_unit (1 nm).
+
+name: cmos_180nm
+node: "180nm"
+db_unit: 1.0e-9
+
+cell:
+  unit_cell_width: 800
+  unit_cell_height: 4800
+  gate_length: 180
+  gate_extension: 200
+  transistor_offset_y: 250
+  power_rail_width: 720
+  minimum_gate_width_nfet: 400
+  minimum_gate_width_pfet: 400
+  minimum_pin_width: 100
+  transistor_channel_width_sizing: 1.0
+  pin_layer: metal2
+  power_layer: metal2
+
+routing:
+  routing_grid_pitch_x: 400
+  routing_grid_pitch_y: 600
+  grid_offset_x: 400
+  grid_offset_y: 300
+  orientation_change_penalty: 100
+  routing_layers:
+    ndiffusion: ""
+    pdiffusion: ""
+    poly: "hv"
+    metal1: "hv"
+    metal2: "hv"
+  wire_width:
+    poly: 200
+    metal1: 200
+    metal2: 200
+  wire_width_horizontal:
+    poly: 200
+    metal1: 200
+    metal2: 200
+  via_size:
+    poly_contact: 160
+    pdiff_contact: 160
+    ndiff_contact: 160
+    via1: 200
+  weights_horizontal:
+    poly: 2
+    metal1: 1
+    metal2: 1
+  weights_vertical:
+    poly: 2
+    metal1: 1
+    metal2: 2
+  connectable_layers:
+    - nwell
+
+drc:
+  minimum_width:
+    poly: 180
+    metal1: 200
+    metal2: 200
+  minimum_notch:
+    ndiffusion: 100
+    pdiffusion: 100
+    poly: 100
+    metal1: 100
+    metal2: 100
+    nwell: 100
+  min_area:
+    metal1: 40000
+    metal2: 40000
+  min_spacing:
+    ndiffusion:
+      ndiffusion: 100
+      poly_contact: 20
+    pdiffusion:
+      pdiffusion: 100
+      ndiffusion: 100
+      poly_contact: 20
+    nwell:
+      nwell: 100
+      pwell: 0
+    pwell:
+      pwell: 100
+    poly:
+      nwell: 100
+      ndiffusion: 100
+      pdiffusion: 100
+      poly: 100
+      ndiff_contact: 20
+      pdiff_contact: 20
+    metal1:
+      metal1: 100
+    metal2:
+      metal2: 200
+  minimum_enclosure:
+    ndiffusion:
+      ndiff_contact: 20
+    pdiffusion:
+      pdiff_contact: 20
+    poly:
+      poly_contact: 20
+    metal1:
+      ndiff_contact: 20
+      pdiff_contact: 20
+      poly_contact: 20
+      via1: 40
+    metal2:
+      via1: 40
+    nwell:
+      pdiffusion: 200
+    pwell:
+      ndiffusion: 200
+
+via:
+  via_weights:
+    metal1:
+      ndiffusion: 500
+      pdiffusion: 500
+      poly: 500
+      metal2: 400
+  multi_via:
+    metal1:
+      poly: 1
+      metal2: 1
+
+output_map:
+  ndiffusion: [1, 0]
+  pdiffusion: [1, 7]
+  nwell:
+    - [2, 0]
+    - [2, 1]
+  pwell:
+    - [2, 7]
+  poly: [3, 0]
+  poly_contact: [4, 0]
+  ndiff_contact: [5, 0]
+  pdiff_contact: [5, 1]
+  metal1: [6, 0]
+  metal1_label: [6, 1]
+  metal1_pin: [6, 2]
+  via1: [7, 0]
+  metal2: [8, 0]
+  metal2_label: [8, 1]
+  metal2_pin: [8, 2]
+  abutment_box: [200, 0]
+
+writers:
+  - type: lef
+    db_unit: 1.0e-6
+    site: CORE
+  - type: gds

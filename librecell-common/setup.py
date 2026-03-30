@@ -28,5 +28,7 @@ setup(name='librecell-common',
           'networkx>=2.5',  # BSD
           'pyparsing>=3.0',  # MIT
           'klayout>=0.28',  # GPLv3
+          'pydantic>=2.0',  # MIT
+          'pyyaml>=6.0',  # MIT
       ],
       zip_safe=False)

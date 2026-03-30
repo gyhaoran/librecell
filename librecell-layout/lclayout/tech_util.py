@@ -31,15 +31,32 @@ def spacing_graph(min_spacing: Dict[Tuple[Any, Any], int]) -> nx.Graph:
     return g
 
 
-def load_tech_file(path, module_name='tech'):
+def load_tech_file_raw(path, module_name='tech'):
     """
-    Load a python module containing technology information.
-    :param path:
-    :param module_name:
-    :return: Handle to the module.
+    Load a python module containing technology information (raw module).
+
+    Returns the untyped Python module object.  Use :func:`load_tech_file`
+    for a unified ``TechConfig`` return type.
     """
-    logger.info('Loading tech file: %s', path)
+    logger.info('Loading tech file (raw): %s', path)
     loader = importlib.machinery.SourceFileLoader('module_name', path)
     tech = types.ModuleType(loader.name)
     loader.exec_module(tech)
     return tech
+
+
+def load_tech_file(path, module_name='tech'):
+    """
+    Load a technology file and return a :class:`~lccommon.tech_config.TechConfig`.
+
+    Supports both ``.py`` (legacy Python module) and ``.yaml`` / ``.yml``
+    (new YAML format) files.
+    """
+    logger.info('Loading tech file: %s', path)
+    if path.endswith(('.yaml', '.yml')):
+        from lccommon.tech_loader import load_tech_yaml
+        return load_tech_yaml(path)
+    else:
+        from lccommon.tech_loader import python_tech_to_config
+        module = load_tech_file_raw(path, module_name)
+        return python_tech_to_config(module)
