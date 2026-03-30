@@ -18,7 +18,7 @@
 ## along with this program. If not, see <http://www.gnu.org/licenses/>.
 ##
 
-from lclayout.data_types import *
+from lccommon.data_types import *
 import networkx as nx
 from typing import Tuple, List, Set, Iterable
 import klayout.db as db

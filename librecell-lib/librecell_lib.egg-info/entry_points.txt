@@ -1,0 +1,5 @@
+[console_scripts]
+lctime = lclib.characterization.main_lctime:main
+libertymerge = lclib.liberty.merge:main
+libertyviz = lclib.liberty.visualize:main_plot_timing
+sp2bool = lclib.characterization.main_sp2bool:main

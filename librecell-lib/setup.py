@@ -55,13 +55,15 @@ setup(name='librecell-lib',
       },
       install_requires=[
           'librecell-common>=0.0.9',
-          'numpy==1.*',  # BSD
-          'sympy==1.6.*',  # BSD
-          'matplotlib==3.*',
+          'librecell-layout>=0.0.9',
+          'numpy>=1.20',  # BSD
+          'sympy>=1.6',  # BSD
+          'matplotlib>=3.0',  # PSF
           'networkx>=2.5',  # BSD
-          'pyspice==1.4.*',  # GPLv3
-          'scipy>=1.5.*',  # BSD
+          'scipy>=1.5',  # BSD
           'liberty-parser>=0.0.8',  # GPLv3
-          'joblib>=0.14', # BSD-3-Clause
       ],
+      extras_require={
+          'characterization': ['pyspice>=1.4', 'joblib>=0.14'],
+      },
       zip_safe=False)

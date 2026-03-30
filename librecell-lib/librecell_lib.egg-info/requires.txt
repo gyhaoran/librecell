@@ -1,0 +1,12 @@
+librecell-common>=0.0.9
+librecell-layout>=0.0.9
+numpy>=1.20
+sympy>=1.6
+matplotlib>=3.0
+networkx>=2.5
+scipy>=1.5
+liberty-parser>=0.0.8
+
+[characterization]
+pyspice>=1.4
+joblib>=0.14

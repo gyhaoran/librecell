@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "librecell"
+version = "0.0.9"
+description = "LibreCell - CMOS/BCD Standard Cell Library Generator"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "GPLv3+/OHL-S v2.0"}
+authors = [
+    {name = "T. Kramer", email = "code@tkramer.ch"}
+]
+keywords = ["cmos", "cell", "generator", "layout", "characterization", "vlsi", "asic", "bcd"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+]
+markers = [
+    "unit: unit tests",
+    "integration: integration tests (may need klayout/ngspice)",
+    "e2e: end-to-end tests",
+    "slow: slow tests (SMT solver etc.)",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["lccommon", "lclayout", "lclib"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/examples/*",
+    "*/setup.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+show_missing = true

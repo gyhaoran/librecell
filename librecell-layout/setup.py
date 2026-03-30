@@ -46,13 +46,13 @@ setup(name='librecell-layout',
       },
       install_requires=[
           'librecell-common>=0.0.9',
-          'toml==0.10.*',
-          'klayout==0.26.*',  # GPLv3
-          'numpy==1.*',  # BSD
-          'networkx==2.*',  # BSD
-          'scipy>=1.5.*',  # BSD
+          'toml>=0.10',  # MIT
+          'klayout>=0.28',  # GPLv3
+          'numpy>=1.20',  # BSD
+          'networkx>=2.5',  # BSD
+          'scipy>=1.5',  # BSD
           'liberty-parser>=0.0.8',  # GPLv3
-          'pysmt==0.9.*',  # Apache-2.0
-          'z3-solver==4.8.*',  #
+          'pysmt>=0.9',  # Apache-2.0
+          'z3-solver>=4.8',  # MIT
       ],
       zip_safe=False)

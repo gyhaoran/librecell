@@ -27,7 +27,7 @@ import sympy
 from sympy.logic import satisfiable, simplify_logic as sympy_simplify_logic
 from sympy.logic import boolalg
 
-from lclayout.data_types import ChannelType
+from lccommon.data_types import ChannelType
 import logging
 
 # logging.basicConfig(level=logging.INFO, stream=sys.stdout)

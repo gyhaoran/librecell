@@ -25,7 +25,7 @@ from enum import Enum
 import sympy
 from sympy.logic import SOPform
 
-from lclayout.data_types import ChannelType
+from lccommon.data_types import ChannelType
 
 
 class Signal(Enum):

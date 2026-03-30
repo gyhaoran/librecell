@@ -25,6 +25,8 @@ setup(name='librecell-common',
       license='GPLv3',
       packages=find_packages(),
       install_requires=[
-          'networkx==2.5',  # BSD
+          'networkx>=2.5',  # BSD
+          'pyparsing>=3.0',  # MIT
+          'klayout>=0.28',  # GPLv3
       ],
       zip_safe=False)
