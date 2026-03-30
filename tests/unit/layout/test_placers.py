@@ -27,6 +27,17 @@ class TestPlacerImports:
         from lclayout.place.place import TransistorPlacer
         assert TransistorPlacer is not None
 
+    def test_hierarchical_placer_import(self):
+        """HierarchicalPlacer can be imported."""
+        from lclayout.place.euler_placer import HierarchicalPlacer
+        assert HierarchicalPlacer is not None
+
+    def test_hierarchical_placer_instantiation(self):
+        """HierarchicalPlacer can be instantiated."""
+        from lclayout.place.euler_placer import HierarchicalPlacer
+        placer = HierarchicalPlacer()
+        assert placer is not None
+
 
 @pytest.mark.unit
 class TestPlacerDataStructures:
@@ -73,25 +84,55 @@ class TestPlacerDataStructures:
         assert ChannelType.NMOS.value == 1
         assert ChannelType.PMOS.value == 2
 
+    def test_cell_get_transistor_locations(self):
+        """Cell.get_transistor_locations() returns locations."""
+        cell = Cell(width=2)
+        cell.upper[0] = Transistor(ChannelType.PMOS, 'vdd', 'a', 'y', name='MP')
+        cell.lower[0] = Transistor(ChannelType.NMOS, 'gnd', 'a', 'y', name='MN')
+        
+        locations = cell.get_transistor_locations()
+        assert isinstance(locations, set)
+        assert len(locations) == 2
+
 
 @pytest.mark.unit
-class TestNetworkXAlgorithms:
-    """Test NetworkX graph algorithms."""
+class TestPlacerGraphAlgorithms:
+    """Test graph algorithms used by placers."""
 
-    def test_shortest_path(self):
-        """NetworkX shortest path works."""
-        G = nx.Graph()
-        G.add_edge('A', 'B')
-        G.add_edge('B', 'C')
-        path = nx.shortest_path(G, 'A', 'C')
-        assert path == ['A', 'B', 'C']
+    def test_eulertours_module_import(self):
+        """eulertours module can be imported."""
+        from lclayout.place import eulertours
+        assert eulertours is not None
 
-    def test_eulerian_path_exists(self):
-        """NetworkX has eulerian path utilities."""
-        G = nx.Graph()
-        G.add_edge('A', 'B')
-        G.add_edge('B', 'C')
-        G.add_edge('C', 'A')
-        # Check has_eulerian_path works
-        result = nx.has_eulerian_path(G)
-        assert isinstance(result, bool)
+    def test_construct_even_degree_graphs_import(self):
+        """construct_even_degree_graphs function exists."""
+        from lclayout.place.eulertours import construct_even_degree_graphs
+        assert callable(construct_even_degree_graphs)
+
+    def test_find_all_euler_tours_import(self):
+        """find_all_euler_tours function exists."""
+        from lclayout.place.eulertours import find_all_euler_tours
+        assert callable(find_all_euler_tours)
+
+    def test_partition_module_import(self):
+        """partition module can be imported."""
+        from lclayout.place import partition
+        assert partition is not None
+
+    def test_partition_function_import(self):
+        """partition function exists."""
+        from lclayout.place.partition import partition
+        assert callable(partition)
+
+    def test_partition_returns_list(self):
+        """partition returns a list of subgraphs."""
+        from lclayout.place.partition import partition
+        import networkx as nx
+        
+        # Create a simple multi-graph
+        G = nx.MultiGraph()
+        G.add_edge('A', 'B', key=('a', 1))
+        G.add_edge('B', 'C', key=('b', 1))
+        
+        result = partition(G)
+        assert isinstance(result, list)

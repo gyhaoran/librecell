@@ -307,3 +307,41 @@ def test_analyze_circuit_graph_dff_pos_scan():
         assert len(abstract.latches) == 2
     except Exception:
         pytest.skip("DFF scan analysis requires specific setup")
+
+
+@pytest.mark.unit
+def test_complex_cmos_graph_to_formula():
+    """Inline test - CMOS graph to formula conversion for AND gate."""
+    from lclib.logic.functional_abstraction import complex_cmos_graph_to_formula
+
+    # Create CMOS network of a AND gate (NAND -> INV).
+    g = nx.MultiGraph()
+    g.add_edge('vdd', 'nand', ('a', ChannelType.PMOS))
+    g.add_edge('vdd', 'nand', ('b', ChannelType.PMOS))
+    g.add_edge('gnd', '1', ('a', ChannelType.NMOS))
+    g.add_edge('1', 'nand', ('b', ChannelType.NMOS))
+    g.add_edge('vdd', 'output', ('nand', ChannelType.PMOS))
+    g.add_edge('gnd', 'output', ('nand', ChannelType.NMOS))
+
+    output_nodes = {'output'}
+    input_pins = {'a', 'b', 'vdd', 'gnd'}
+
+    # Call with correct signature
+    result = complex_cmos_graph_to_formula(g, output_nodes, input_pins)
+
+    # Result returns (dict, set) - intermediate variables and input variables
+    assert isinstance(result, tuple)
+    assert len(result) == 2
+
+
+@pytest.mark.unit
+def test_resolve_intermediate_variables():
+    """Inline test - resolve intermediate variables in formulas."""
+    from lclib.logic.functional_abstraction import _resolve_intermediate_variables, bool_equals
+
+    a, b, c = sympy.symbols('a b c')
+    formulas = {a: b ^ c, c: ~a}
+    inputs = {b}
+
+    r = _resolve_intermediate_variables(formulas, inputs, a)
+    assert bool_equals(r, b ^ ~a)
