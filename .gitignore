@@ -9,3 +9,5 @@ build
 dist
 .claude
 .minimax
+.pytest_cache
+__pycache__
