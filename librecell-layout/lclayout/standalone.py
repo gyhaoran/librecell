@@ -390,6 +390,19 @@ class LcLayout:
         # Create base graph
         G = create_routing_graph_base(grid, tech, self.layer_stack.via_layers)
 
+        # Check routing track availability
+        y_tracks = sorted(set(y for _, y in grid))
+        num_y_tracks = len(y_tracks)
+        if num_y_tracks < 4:
+            logger.warning("Only %d Y routing tracks available. Routing may fail for complex cells.",
+                           num_y_tracks)
+        if tech.num_tracks is not None and num_y_tracks < tech.num_tracks - 2:
+            logger.warning(
+                "Effective routing tracks (%d) significantly less than num_tracks (%d). "
+                "Power rails and offsets consume track positions.",
+                num_y_tracks, tech.num_tracks
+            )
+
         # Remove illegal routing nodes from graph and get a dict of legal routing nodes per layer.
         remove_illegal_routing_edges(G, self.shapes, tech, self.layer_stack.via_layers)
 

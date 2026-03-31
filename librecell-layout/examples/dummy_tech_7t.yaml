@@ -1,0 +1,167 @@
+# LibreCell dummy technology — 6-track configuration
+#
+# Derived from dummy_tech.yaml with num_tracks=6, track_pitch=300.
+# This is the 7-track configuration.
+
+name: dummy_tech_7t
+node: ""
+db_unit: 1.0e-9
+
+# --- Cell geometry ---
+cell:
+  unit_cell_width: 400
+  num_tracks: 7
+  track_pitch: 300
+  # unit_cell_height auto-calculated: 7 * 300 = 2100
+  gate_length: 50
+  gate_extension: 100
+  # transistor_offset_y auto-calculated from DRC rules
+  power_rail_width: 320
+  minimum_gate_width_nfet: 175
+  minimum_gate_width_pfet: 175
+  minimum_pin_width: 50
+  transistor_channel_width_sizing: 1.0
+  pin_layer: metal2
+  power_layer: metal2
+
+# --- Routing ---
+routing:
+  routing_grid_pitch_x: 200
+  # routing_grid_pitch_y auto-derived from track_pitch (300)
+  grid_offset_x: 200
+  # grid_offset_y auto-derived from track_pitch / 2 (150)
+  orientation_change_penalty: 100
+  routing_layers:
+    ndiffusion: ""
+    pdiffusion: ""
+    poly: "hv"
+    metal1: "hv"
+    metal2: "hv"
+  wire_width:
+    poly: 100
+    metal1: 100
+    metal2: 100
+  wire_width_horizontal:
+    poly: 100
+    metal1: 100
+    metal2: 100
+  via_size:
+    poly_contact: 80
+    pdiff_contact: 80
+    ndiff_contact: 80
+    via1: 100
+  weights_horizontal:
+    poly: 2
+    metal1: 1
+    metal2: 1
+  weights_vertical:
+    poly: 2
+    metal1: 1
+    metal2: 2
+  connectable_layers:
+    - nwell
+
+# --- Design rules ---
+drc:
+  minimum_width:
+    poly: 50
+    metal1: 100
+    metal2: 100
+  minimum_notch:
+    ndiffusion: 50
+    pdiffusion: 50
+    poly: 50
+    metal1: 50
+    metal2: 50
+    nwell: 50
+  min_area:
+    metal1: 10000
+    metal2: 10000
+  min_spacing:
+    ndiffusion:
+      ndiffusion: 50
+      poly_contact: 10
+    pdiffusion:
+      pdiffusion: 50
+      ndiffusion: 50
+      poly_contact: 10
+    nwell:
+      nwell: 50
+      pwell: 0
+    pwell:
+      pwell: 50
+    poly:
+      nwell: 50
+      ndiffusion: 50
+      pdiffusion: 50
+      poly: 50
+      ndiff_contact: 10
+      pdiff_contact: 10
+    metal1:
+      metal1: 50
+    metal2:
+      metal2: 100
+  minimum_enclosure:
+    ndiffusion:
+      ndiff_contact: 10
+    pdiffusion:
+      pdiff_contact: 10
+    poly:
+      poly_contact: 10
+    metal1:
+      ndiff_contact: 10
+      pdiff_contact: 10
+      poly_contact: 10
+      via1: 20
+    metal2:
+      via1: 20
+    nwell:
+      pdiffusion: 100
+    pwell:
+      ndiffusion: 100
+
+# --- Via weights ---
+via:
+  via_weights:
+    metal1:
+      ndiffusion: 500
+      pdiffusion: 500
+      poly: 500
+      metal2: 400
+  multi_via:
+    metal1:
+      poly: 1
+      metal2: 1
+
+# --- Via connectivity ---
+via_connectivity:
+  - {via: ndiff_contact, bottom: ndiffusion, top: metal1}
+  - {via: pdiff_contact, bottom: pdiffusion, top: metal1}
+  - {via: poly_contact, bottom: poly, top: metal1}
+  - {via: via1, bottom: metal1, top: metal2}
+
+# --- Output layer mapping ---
+output_map:
+  ndiffusion: [1, 0]
+  pdiffusion: [1, 7]
+  nwell:
+    - [2, 0]
+    - [2, 1]
+  pwell:
+    - [2, 7]
+  poly: [3, 0]
+  poly_contact: [4, 0]
+  ndiff_contact: [5, 0]
+  pdiff_contact: [5, 1]
+  metal1: [6, 0]
+  metal1_label: [6, 1]
+  metal1_pin: [6, 2]
+  via1: [7, 0]
+  metal2: [8, 0]
+  metal2_label: [8, 1]
+  metal2_pin: [8, 2]
+  abutment_box: [200, 0]
+
+# --- Output writers ---
+writers:
+  - type: gds

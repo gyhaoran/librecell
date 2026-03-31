@@ -97,6 +97,44 @@ def create_routing_graph_base(grid: Grid2D, tech, via_layers) -> nx.Graph:
     return G
 
 
+def estimate_min_tracks(cell_name: str, transistors: List[Transistor],
+                        cell_pins: List[str]) -> int:
+    """Heuristic estimate of minimum routing tracks needed for a cell.
+
+    Based on:
+    - Number of unique signal nets (excluding power/ground)
+    - Number of transistors
+    - 2 tracks reserved for power rail regions
+
+    :param cell_name: Name of the cell (for logging).
+    :param transistors: List of Transistor objects.
+    :param cell_pins: List of cell pin names.
+    :return: Estimated minimum track count, clamped to [4, 20].
+    """
+    all_nets = set()
+    for t in transistors:
+        all_nets.update([t.source_net, t.gate_net, t.drain_net])
+
+    # Identify power/ground nets by common naming conventions
+    power_ground = set()
+    for n in all_nets:
+        nl = n.lower()
+        if nl in ('vdd', 'vcc', 'vss', 'gnd', 'ground', 'supply'):
+            power_ground.add(n)
+
+    signal_nets = all_nets - power_ground
+    num_signals = len(signal_nets)
+    num_transistors = len(transistors)
+
+    # Heuristic: 2 base tracks for power + signal routing complexity
+    estimated = 2 + num_signals + max(0, (num_transistors - 2) // 2)
+    estimated = max(4, min(20, estimated))
+
+    logger.info("Estimated minimum tracks for %s: %d (%d signal nets, %d transistors)",
+                cell_name, estimated, num_signals, num_transistors)
+    return estimated
+
+
 def _get_routing_node_locations_per_layer(g: nx.Graph) -> Dict[Any, Set[Tuple[int, int]]]:
     """ For each layer extract the positions of the routing nodes.
 

@@ -8,7 +8,9 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Dict, List, Literal, Optional, Set, Tuple, Union
 
-from pydantic import BaseModel, ConfigDict, Discriminator, Field, PrivateAttr, Tag
+import warnings
+
+from pydantic import BaseModel, ConfigDict, Discriminator, Field, PrivateAttr, Tag, model_validator
 
 
 # ---------------------------------------------------------------------------
@@ -18,10 +20,10 @@ from pydantic import BaseModel, ConfigDict, Discriminator, Field, PrivateAttr, T
 class CellConfig(BaseModel):
     """Cell geometry parameters."""
     unit_cell_width: float
-    unit_cell_height: float
+    unit_cell_height: Optional[float] = None
     gate_length: float
     gate_extension: float
-    transistor_offset_y: float
+    transistor_offset_y: Optional[float] = None
     power_rail_width: float
     minimum_gate_width_nfet: float
     minimum_gate_width_pfet: float
@@ -29,14 +31,45 @@ class CellConfig(BaseModel):
     transistor_channel_width_sizing: float = 1.0
     pin_layer: str = "metal2"
     power_layer: str = "metal2"
+    num_tracks: Optional[int] = None
+    track_pitch: Optional[float] = None
+
+    @model_validator(mode='after')
+    def _resolve_cell_height(self) -> 'CellConfig':
+        # Validate num_tracks range
+        if self.num_tracks is not None and not (4 <= self.num_tracks <= 20):
+            warnings.warn(
+                f"num_tracks={self.num_tracks} is outside recommended range [4, 20]"
+            )
+
+        has_tracks = self.num_tracks is not None and self.track_pitch is not None
+
+        if self.unit_cell_height is not None:
+            # Explicit height takes priority
+            if has_tracks:
+                computed = self.num_tracks * self.track_pitch
+                if abs(self.unit_cell_height - computed) > 1e-6:
+                    warnings.warn(
+                        f"unit_cell_height ({self.unit_cell_height}) differs from "
+                        f"num_tracks * track_pitch ({computed}). "
+                        f"Using explicit unit_cell_height."
+                    )
+        elif has_tracks:
+            self.unit_cell_height = self.num_tracks * self.track_pitch
+        else:
+            raise ValueError(
+                "Must provide unit_cell_height, or both num_tracks and track_pitch"
+            )
+
+        return self
 
 
 class RoutingConfig(BaseModel):
     """Routing grid and weight parameters."""
     routing_grid_pitch_x: float
-    routing_grid_pitch_y: float
+    routing_grid_pitch_y: Optional[float] = None
     grid_offset_x: float = 0
-    grid_offset_y: float = 0
+    grid_offset_y: Optional[float] = None
     orientation_change_penalty: float = 100
     routing_layers: Dict[str, str] = {}
     wire_width: Dict[str, float] = {}
@@ -186,6 +219,46 @@ class TechConfig(BaseModel):
     _layer_stack_cache: Optional[Any] = PrivateAttr(default=None)
 
     # ------------------------------------------------------------------
+    # Cross-model resolution (runs after all sub-models are constructed)
+    # ------------------------------------------------------------------
+
+    @model_validator(mode='after')
+    def _resolve_multi_track(self) -> 'TechConfig':
+        # Sync routing_grid_pitch_y from track_pitch
+        if self.routing.routing_grid_pitch_y is None:
+            if self.cell.track_pitch is not None:
+                self.routing.routing_grid_pitch_y = self.cell.track_pitch
+            else:
+                raise ValueError(
+                    "routing_grid_pitch_y must be set, or cell.track_pitch must be provided"
+                )
+        elif self.cell.track_pitch is not None:
+            if abs(self.routing.routing_grid_pitch_y - self.cell.track_pitch) > 1e-6:
+                warnings.warn(
+                    f"routing_grid_pitch_y ({self.routing.routing_grid_pitch_y}) differs from "
+                    f"track_pitch ({self.cell.track_pitch}). Using explicit routing_grid_pitch_y."
+                )
+
+        # Sync grid_offset_y if not set
+        if self.routing.grid_offset_y is None:
+            if self.cell.track_pitch is not None:
+                self.routing.grid_offset_y = self.cell.track_pitch / 2
+            else:
+                self.routing.grid_offset_y = self.routing.routing_grid_pitch_y / 2
+
+        # Auto-compute transistor_offset_y if not set
+        if self.cell.transistor_offset_y is None:
+            poly_spacing = self.drc.min_spacing.get('poly', {}).get('poly', 0)
+            ndiff_spacing = self.drc.min_spacing.get('ndiffusion', {}).get('ndiffusion', 0)
+            poly_half_spacing = (poly_spacing + 1) // 2
+            active_half_spacing = (ndiff_spacing + 1) // 2
+            gate_ext = self.cell.gate_extension
+            min_offset = max(active_half_spacing, gate_ext + poly_half_spacing)
+            self.cell.transistor_offset_y = float(min_offset)
+
+        return self
+
+    # ------------------------------------------------------------------
     # Helpers: nested ↔ tuple-key conversion
     # ------------------------------------------------------------------
 
@@ -281,6 +354,14 @@ class TechConfig(BaseModel):
     @property
     def power_layer(self) -> str:
         return self.cell.power_layer
+
+    @property
+    def num_tracks(self) -> Optional[int]:
+        return self.cell.num_tracks
+
+    @property
+    def track_pitch(self) -> Optional[float]:
+        return self.cell.track_pitch
 
     # ------------------------------------------------------------------
     # Flat property accessors — routing sub-model
