@@ -223,6 +223,13 @@ class LcLayout:
         from lccommon.layer_stack import LayerStack
         self.layer_stack = LayerStack(tech)
 
+        # Build script context if tech has scripts configured
+        self._script_ctx = None
+        if hasattr(tech, 'has_scripts') and tech.has_scripts:
+            from lccommon.script_context import ScriptContext
+            base_dir = getattr(tech, '_config_dir', '.')
+            self._script_ctx = ScriptContext(tech.scripts, base_dir=base_dir)
+
         self.cell_name = None
         self.io_pins = None
         self.supply_nets: set[str] = set()
@@ -796,8 +803,40 @@ class LcLayout:
         self._04_draw_transistors()
         self._05_draw_cell_template()
         self._06_route()
+
+        # Hook: on_after_placement (runs after placement and drawing)
+        if self._script_ctx:
+            result = self._script_ctx.run_hook(
+                'on_after_placement',
+                cell=self._abstract_cell, shapes=self.shapes, tech_config=self.tech,
+            )
+            if result is not None:
+                self._abstract_cell = result
+
         self._08_draw_routes()
+
+        # Hook: on_after_routing
+        if self._script_ctx:
+            result = self._script_ctx.run_hook(
+                'on_after_routing',
+                routing_trees=self._routing_trees, shapes=self.shapes, tech_config=self.tech,
+            )
+            if result is not None:
+                self._routing_trees = result
+
         self._09_post_process()
+
+        # Hook: layer_postprocess + custom_drc (before output)
+        if self._script_ctx:
+            self._script_ctx.run_layer_postprocess(self.shapes, self.tech, self.layer_stack)
+            self._drc_violations = self._script_ctx.run_custom_drc(
+                self.shapes, self.tech, self.layer_stack,
+            )
+            for v in self._drc_violations:
+                if v.severity == 'error':
+                    logger.error("DRC violation: %s — %s", v.rule_name, v.message)
+                else:
+                    logger.warning("DRC warning: %s — %s", v.rule_name, v.message)
 
         return self.top_cell, self._pin_shapes
 

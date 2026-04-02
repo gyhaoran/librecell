@@ -178,6 +178,10 @@ class BcdConfig(BaseModel):
     deep_nwell_layer: Optional[str] = None
 
 
+# Re-export ScriptConfig and related models for convenience
+from lccommon.script_context import ScriptConfig, ScriptEntry, DrcViolation  # noqa: E402
+
+
 # ---------------------------------------------------------------------------
 # Top-level TechConfig
 # ---------------------------------------------------------------------------
@@ -211,6 +215,9 @@ class TechConfig(BaseModel):
 
     # BCD process configuration
     bcd: BcdConfig = BcdConfig()
+
+    # Script hooks for process customization
+    scripts: ScriptConfig = ScriptConfig()
 
     # Output map — internal layer name → GDS (layer, purpose) or list thereof.
     # Stored as nested lists for YAML; property converts to tuples.
@@ -395,6 +402,16 @@ class TechConfig(BaseModel):
     @property
     def primary_power_domain(self) -> 'PowerDomain':
         return self.power_domains[0]
+
+    @property
+    def has_scripts(self) -> bool:
+        """True if any script hook list is non-empty."""
+        s = self.scripts
+        return bool(
+            s.custom_drc or s.layer_postprocess
+            or s.on_after_placement or s.on_after_routing
+            or s.on_before_output
+        )
 
     # ------------------------------------------------------------------
     # Flat property accessors — routing sub-model

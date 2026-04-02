@@ -25,6 +25,8 @@ from . import tech_util
 from typing import Any, Dict, List, Tuple, Iterable, Set
 import logging
 
+import klayout.db as pya
+
 logger = logging.getLogger(__name__)
 
 
@@ -261,7 +263,7 @@ def extract_terminal_nodes(graph: nx.Graph,
 
                 # TODO: How to convert db.Shape into db.Region in a clean way???
 
-                s = db.Shapes()
+                s = pya.Shapes()
                 s.insert(net_shape)
                 terminal_region = pya.Region(s)
 

@@ -93,7 +93,7 @@ def _set_dot_path(data: dict, path: str, value: Any) -> None:
 _NO_SCALE_KEYS = frozenset({
     'name', 'node', 'db_unit',
     'layers', 'vias', 'via_connectivity',
-    'power_domains', 'bcd',
+    'power_domains', 'bcd', 'scripts',
     'output_map', 'writers', 'extensions',
 })
 

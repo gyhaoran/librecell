@@ -92,7 +92,7 @@ class TechConfig(BaseModel):
 1. `docs/getting_started.md` — 快速入门
 2. `docs/tech_config_guide.md` — 工艺配置编写指南（含所有字段说明）
 3. `docs/migration_guide.md` — 工艺迁移指南
-4. `docs/plugin_guide.md` — 插件开发指南
+4. `docs/scripting_guide.md` — 脚本开发指南
 5. `docs/api_reference.md` — Python API 参考
 6. `docs/faq.md` — 常见问题
 

@@ -78,7 +78,7 @@
 - 模拟 SE 工程师工作流：
   1. 复制一个现有 YAML 配置
   2. 修改关键参数（gate_length, spacing 等）
-  3. 编写一个简单插件（如 well tap 插件）
+  3. 编写一个简单脚本（如 well tap 脚本）
   4. 使用 Python API 生成单元库
   5. 验证生成结果
 
@@ -200,8 +200,8 @@ class TestSEWorkflow:
                                output_dir=str(tmp_path / "output"))
         assert result['lvs_passed']
 
-    def test_plugin_based_customization(self, tmp_output_dir):
-        """SE 通过插件定制布局"""
+    def test_script_based_customization(self, tmp_output_dir):
+        """SE 通过脚本定制布局"""
 
     def test_python_api_workflow(self, tmp_output_dir):
         """SE 使用 Python API 的完整工作流"""
@@ -215,7 +215,7 @@ class TestSEWorkflow:
 - [ ] 7T → 9T 上行 Track 迁移验证通过
 - [ ] 9T → 7T 下行 Track 迁移验证通过（简单单元 LVS 通过，复杂单元有合理报告）
 - [ ] BCD HV 反相器验证通过
-- [ ] SE 工程师工作流验证通过（配置修改 + 插件 + API）
+- [ ] SE 工程师工作流验证通过（配置修改 + 脚本 + API）
 - [ ] `pytest tests/e2e/ -v` 全部通过
 - [ ] 所有之前的单元测试和集成测试仍通过
 

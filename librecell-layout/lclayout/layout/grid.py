@@ -33,7 +33,7 @@ class Grid:
         :return:
         """
 
-        return product(*(range(a, b, c)
+        return product(*(range(int(a), int(b), int(c))
                          for a, b, c in zip(self.start, self.end, self.step)
                          ))
 
