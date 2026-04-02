@@ -32,7 +32,9 @@ class Transistor:
                  source_net: str, gate_net: str, drain_net: str,
                  channel_width=None,
                  name: str = 'M?',
-                 allow_flip_source_drain: bool = True
+                 allow_flip_source_drain: bool = True,
+                 voltage_domain: str = 'default',
+                 is_high_voltage: bool = False
                  ):
         """
         params:
@@ -51,6 +53,9 @@ class Transistor:
 
         # TODO
         self.threshold_voltage = None
+
+        self.voltage_domain = voltage_domain
+        self.is_high_voltage = is_high_voltage
 
     def flipped(self):
         """ Return the same transistor but with left/right terminals flipped.
@@ -72,7 +77,7 @@ class Transistor:
         return self.source_net, self.gate_net, self.drain_net
 
     def __key(self):
-        return self.name, self.channel_type, self.source_net, self.gate_net, self.drain_net, self.channel_width, self.threshold_voltage
+        return self.name, self.channel_type, self.source_net, self.gate_net, self.drain_net, self.channel_width, self.threshold_voltage, self.voltage_domain, self.is_high_voltage
 
     def __hash__(self):
         return hash(self.__key())

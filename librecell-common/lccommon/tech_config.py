@@ -166,6 +166,16 @@ class PowerDomain(BaseModel):
     supply_net: str = "VDD"
     ground_net: str = "VSS"
     voltage: Optional[float] = None
+    is_high_voltage: bool = False
+
+
+class BcdConfig(BaseModel):
+    """BCD process configuration."""
+    enabled: bool = False
+    thick_oxide_layer: str = "thick_oxide"
+    hv_nwell_layer: str = "hv_nwell"
+    hv_pwell_layer: str = "hv_pwell"
+    deep_nwell_layer: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -198,6 +208,9 @@ class TechConfig(BaseModel):
     vias: List[ViaDefinition] = []
     via_connectivity: List[ViaConnectivity] = []
     power_domains: List[PowerDomain] = Field(default_factory=lambda: [PowerDomain()])
+
+    # BCD process configuration
+    bcd: BcdConfig = BcdConfig()
 
     # Output map — internal layer name → GDS (layer, purpose) or list thereof.
     # Stored as nested lists for YAML; property converts to tuples.
@@ -362,6 +375,26 @@ class TechConfig(BaseModel):
     @property
     def track_pitch(self) -> Optional[float]:
         return self.cell.track_pitch
+
+    # ------------------------------------------------------------------
+    # Flat property accessors — power domain / BCD
+    # ------------------------------------------------------------------
+
+    @property
+    def bcd_enabled(self) -> bool:
+        return self.bcd.enabled
+
+    @property
+    def all_supply_nets(self) -> Set[str]:
+        return {pd.supply_net for pd in self.power_domains}
+
+    @property
+    def all_ground_nets(self) -> Set[str]:
+        return {pd.ground_net for pd in self.power_domains}
+
+    @property
+    def primary_power_domain(self) -> 'PowerDomain':
+        return self.power_domains[0]
 
     # ------------------------------------------------------------------
     # Flat property accessors — routing sub-model

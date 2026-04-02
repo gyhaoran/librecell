@@ -225,6 +225,8 @@ class LcLayout:
 
         self.cell_name = None
         self.io_pins = None
+        self.supply_nets: set[str] = set()
+        self.ground_nets: set[str] = set()
         self.SUPPLY_VOLTAGE_NET = None
         self.GND_NET = None
 
@@ -270,21 +272,26 @@ class LcLayout:
         self.cell_name = cell_name
 
         self._transistors_abstract, cell_pins = load_transistor_netlist(netlist_path, cell_name)
-        self.io_pins = net_util.get_io_pins(cell_pins)
+        self.io_pins = net_util.get_io_pins(cell_pins, config=self.tech)
 
-        ground_nets = {p for p in cell_pins if is_ground_net(p)}
-        supply_nets = {p for p in cell_pins if is_supply_net(p)}
+        ground_nets = {p for p in cell_pins if is_ground_net(p, config=self.tech)}
+        supply_nets = {p for p in cell_pins if is_supply_net(p, config=self.tech)}
 
         assert len(ground_nets) > 0, "Could not find net name of ground."
         assert len(supply_nets) > 0, "Could not find net name of supply voltage."
-        assert len(ground_nets) == 1, "Multiple ground net names: {}".format(ground_nets)
-        assert len(supply_nets) == 1, "Multiple supply net names: {}".format(supply_nets)
 
-        self.SUPPLY_VOLTAGE_NET = supply_nets.pop()
-        self.GND_NET = ground_nets.pop()
+        self.supply_nets = supply_nets
+        self.ground_nets = ground_nets
+        # Backward-compatible: primary power domain
+        self.SUPPLY_VOLTAGE_NET = self.tech.primary_power_domain.supply_net \
+            if self.tech.primary_power_domain.supply_net in supply_nets \
+            else next(iter(supply_nets))
+        self.GND_NET = self.tech.primary_power_domain.ground_net \
+            if self.tech.primary_power_domain.ground_net in ground_nets \
+            else next(iter(ground_nets))
 
-        logger.info("Supply net: {}".format(self.SUPPLY_VOLTAGE_NET))
-        logger.info("Ground net: {}".format(self.GND_NET))
+        logger.info("Supply nets: {}".format(self.supply_nets))
+        logger.info("Ground nets: {}".format(self.ground_nets))
 
         # Convert transistor dimensions into data base units.
         for t in self._transistors_abstract:
@@ -624,9 +631,11 @@ class LcLayout:
                 _draw_label(self.shapes, tech.pin_layer + '_label', (x, y), net_name)
 
             # Add label for power rails
-            _draw_label(self.shapes, tech.power_layer + '_label', (self._cell_width // 2, 0), self.GND_NET)
-            _draw_label(self.shapes, tech.power_layer + '_label', (self._cell_width // 2, self._cell_height),
-                        self.SUPPLY_VOLTAGE_NET)
+            for gnd_net in self.ground_nets:
+                _draw_label(self.shapes, tech.power_layer + '_label', (self._cell_width // 2, 0), gnd_net)
+            for sup_net in self.supply_nets:
+                _draw_label(self.shapes, tech.power_layer + '_label', (self._cell_width // 2, self._cell_height),
+                            sup_net)
 
             # Add pin shapes.
             for net_name, pin_shapes in pin_shapes_by_net.items():

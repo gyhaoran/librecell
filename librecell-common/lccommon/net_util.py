@@ -144,28 +144,34 @@ def load_transistor_netlist(path: str, circuit_name: str, force_lowercase: bool 
     return transistors_klayout, set(pins)
 
 
-def is_ground_net(net: str) -> bool:
+def is_ground_net(net: str, config=None) -> bool:
     """ Test if net is something like 'gnd' or 'vss'.
+    When config is provided and has power_domains, augment the default set with those.
     """
     ground_nets = {0, '0', 'gnd', 'vss', 'vgnd'}
+    if config is not None and hasattr(config, 'power_domains'):
+        ground_nets |= {pd.ground_net.lower() for pd in config.power_domains}
     return net.lower() in ground_nets
 
 
-def is_supply_net(net: str) -> bool:
+def is_supply_net(net: str, config=None) -> bool:
     """ Test if net is something like 'vcc' or 'vdd'.
+    When config is provided and has power_domains, augment the default set with those.
     """
     supply_nets = {'vcc', 'vdd', 'vpwr'}
+    if config is not None and hasattr(config, 'power_domains'):
+        supply_nets |= {pd.supply_net.lower() for pd in config.power_domains}
     return net.lower() in supply_nets
 
 
-def is_power_net(net: str) -> bool:
-    return is_ground_net(net) or is_supply_net(net)
+def is_power_net(net: str, config=None) -> bool:
+    return is_ground_net(net, config) or is_supply_net(net, config)
 
 
-def get_io_pins(pin_names: Iterable[str]) -> Set[str]:
+def get_io_pins(pin_names: Iterable[str], config=None) -> Set[str]:
     """ Get all pin names that don't look like power pins.
     """
-    return {p for p in pin_names if not is_ground_net(p) and not is_supply_net(p)}
+    return {p for p in pin_names if not is_ground_net(p, config) and not is_supply_net(p, config)}
 
 
 def get_cell_inputs(transistors: Iterable[Transistor]) -> Set[str]:

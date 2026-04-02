@@ -41,6 +41,12 @@ class LayerStack:
     l_metal2_pin = 'metal2_pin'
     l_abutment_box = 'abutment_box'
 
+    # BCD / HV layer name constants
+    l_hv_nwell = 'hv_nwell'
+    l_hv_pwell = 'hv_pwell'
+    l_thick_oxide = 'thick_oxide'
+    l_deep_nwell = 'deep_nwell'
+
     def __init__(self, tech_config):
         """Build layer stack from a TechConfig instance.
 

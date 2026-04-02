@@ -87,7 +87,8 @@ class DefaultTransistorLayout(TransistorLayout):
         self.distance_to_outline = tech.transistor_offset_y # TODO: Simplify this.
 
         # Get either the ndiffusion or pdiffusion layer.
-        if abstract_transistor.channel_type == ChannelType.NMOS:
+        # Use .value comparison to avoid enum identity issues across dual-imports
+        if abstract_transistor.channel_type.value == ChannelType.NMOS.value:
             l_diffusion = 'ndiffusion'
             l_diff_contact = 'ndiff_contact'
         else:
@@ -141,7 +142,8 @@ class DefaultTransistorLayout(TransistorLayout):
         # Enclose active regions of PMOS transistors with l_nwell.
 
         # Get layer depending on channel type.
-        l_well = 'nwell' if abstract_transistor.channel_type == ChannelType.PMOS else 'pwell'
+        # Use l_diffusion to infer well type (avoids enum identity issues across imports)
+        l_well = 'nwell' if l_diffusion == 'pdiffusion' else 'pwell'
         # Well layer.
         self.l_well = l_well
 
@@ -206,6 +208,22 @@ class DefaultTransistorLayout(TransistorLayout):
         self._terminals = terminals
         self._well_box = well_box
 
+        # HV marker layers for BCD high-voltage transistors
+        self._hv_markers: list[tuple[str, pya.Box]] = []
+        if abstract_transistor.is_high_voltage and hasattr(tech, 'bcd') and tech.bcd.enabled:
+            bcd = tech.bcd
+            # Thick oxide marker covers the gate oxide region
+            gate_oxide_box = pya.Box(
+                center_x - tech.gate_length // 2,
+                active_box.bottom,
+                center_x + tech.gate_length // 2,
+                active_box.top
+            )
+            self._hv_markers.append((bcd.thick_oxide_layer, gate_oxide_box))
+            # HV well marker — same extent as standard well
+            hv_well_layer = bcd.hv_nwell_layer if self.l_well == 'nwell' else bcd.hv_pwell_layer
+            self._hv_markers.append((hv_well_layer, well_box))
+
     def terminal_nodes(self) -> Dict[str, List[Tuple[str, Tuple[int, int]]]]:
         """
         Get point-like terminal nodes in the form `{net name: {(layer name, (x, y)), ...}}`.
@@ -228,3 +246,8 @@ class DefaultTransistorLayout(TransistorLayout):
         # Create gate shape.
         inst = shapes['poly'].insert(self._gate_path)
         inst.set_property('net', self.abstract_transistor.gate_net)
+
+        # Draw HV marker layers (BCD high-voltage transistors only)
+        for layer_name, box in self._hv_markers:
+            if layer_name in shapes:
+                shapes[layer_name].insert(box)
