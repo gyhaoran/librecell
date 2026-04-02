@@ -1,0 +1,9 @@
+# Same-node track migration: 10T -> 7T (downward)
+# Significant routing reduction
+
+source_node: "180nm_10t"
+target_node: "180nm_7t"
+scale_factor: 1.0
+
+fixed_values:
+  cell.num_tracks: 7

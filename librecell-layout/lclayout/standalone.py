@@ -956,6 +956,68 @@ def main():
     logger.info("Done (Total duration: {})".format(duration))
 
 
+def migrate_main():
+    """Entry function for lclayout-migrate CLI command."""
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description='Migrate a technology configuration using a migration rule.'
+    )
+    parser.add_argument('--source', required=True, metavar='FILE',
+                        help='source technology YAML file')
+    parser.add_argument('--rule', required=True, metavar='FILE',
+                        help='migration rule YAML file')
+    parser.add_argument('--output', required=True, metavar='FILE',
+                        help='output technology YAML file')
+    parser.add_argument('--validate', action='store_true',
+                        help='run feasibility check after migration')
+    parser.add_argument('--cells', nargs='*', metavar='CELL',
+                        help='cell names for feasibility check (used with --validate)')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='show detailed migration report')
+
+    args = parser.parse_args()
+
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    logging.basicConfig(
+        format='%(asctime)s %(module)16s %(levelname)8s: %(message)s',
+        datefmt="%Y-%m-%d %H:%M:%S",
+        level=log_level,
+    )
+
+    from lccommon.tech_loader import load_tech_yaml, save_tech_yaml
+    from lccommon.tech_migration import load_migration_rule, TechMigrator
+
+    source = load_tech_yaml(args.source)
+    rule = load_migration_rule(args.rule)
+    migrator = TechMigrator(rule)
+
+    logger.info("Migrating: %s -> %s (scale=%.3f)",
+                rule.source_node, rule.target_node, rule.scale_factor)
+
+    target = migrator.migrate(source)
+    save_tech_yaml(target, args.output)
+    logger.info("Wrote migrated config to: %s", args.output)
+
+    if args.verbose:
+        report_text = migrator.generate_migration_report(source, target)
+        print(report_text)
+
+    if args.validate:
+        report = migrator.validate_feasibility(source, target, cell_names=args.cells)
+        if report.warnings:
+            for w in report.warnings:
+                logger.warning(w)
+        if report.errors:
+            for e in report.errors:
+                logger.error(e)
+        if report.feasible:
+            logger.info("Feasibility check: PASSED")
+        else:
+            logger.error("Feasibility check: FAILED")
+            exit(1)
+
+
 def fix_min_area(tech, shapes: Dict[str, pya.Shapes], debug=False):
     """
     Fix minimum area violations.

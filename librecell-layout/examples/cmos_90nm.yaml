@@ -1,0 +1,161 @@
+# CMOS 90nm technology configuration
+#
+# Based on cmos_180nm.yaml with ~0.5x scaling for 90nm process.
+# All dimensions in db_unit (1 nm).
+
+name: cmos_90nm
+node: "90nm"
+db_unit: 1.0e-9
+
+cell:
+  unit_cell_width: 400
+  unit_cell_height: 2400
+  gate_length: 90
+  gate_extension: 100
+  transistor_offset_y: 125
+  power_rail_width: 360
+  minimum_gate_width_nfet: 200
+  minimum_gate_width_pfet: 200
+  minimum_pin_width: 50
+  transistor_channel_width_sizing: 1.0
+  pin_layer: metal2
+  power_layer: metal2
+
+routing:
+  routing_grid_pitch_x: 200
+  routing_grid_pitch_y: 300
+  grid_offset_x: 200
+  grid_offset_y: 150
+  orientation_change_penalty: 100
+  routing_layers:
+    ndiffusion: ""
+    pdiffusion: ""
+    poly: "hv"
+    metal1: "hv"
+    metal2: "hv"
+  wire_width:
+    poly: 100
+    metal1: 100
+    metal2: 100
+  wire_width_horizontal:
+    poly: 100
+    metal1: 100
+    metal2: 100
+  via_size:
+    poly_contact: 80
+    pdiff_contact: 80
+    ndiff_contact: 80
+    via1: 100
+  weights_horizontal:
+    poly: 2
+    metal1: 1
+    metal2: 1
+  weights_vertical:
+    poly: 2
+    metal1: 1
+    metal2: 2
+  connectable_layers:
+    - nwell
+
+drc:
+  minimum_width:
+    poly: 90
+    metal1: 100
+    metal2: 100
+  minimum_notch:
+    ndiffusion: 50
+    pdiffusion: 50
+    poly: 50
+    metal1: 50
+    metal2: 50
+    nwell: 50
+  min_area:
+    metal1: 10000
+    metal2: 10000
+  min_spacing:
+    ndiffusion:
+      ndiffusion: 50
+      poly_contact: 10
+    pdiffusion:
+      pdiffusion: 50
+      ndiffusion: 50
+      poly_contact: 10
+    nwell:
+      nwell: 50
+      pwell: 0
+    pwell:
+      pwell: 50
+    poly:
+      nwell: 50
+      ndiffusion: 50
+      pdiffusion: 50
+      poly: 50
+      ndiff_contact: 10
+      pdiff_contact: 10
+    metal1:
+      metal1: 50
+    metal2:
+      metal2: 100
+  minimum_enclosure:
+    ndiffusion:
+      ndiff_contact: 10
+    pdiffusion:
+      pdiff_contact: 10
+    poly:
+      poly_contact: 10
+    metal1:
+      ndiff_contact: 10
+      pdiff_contact: 10
+      poly_contact: 10
+      via1: 20
+    metal2:
+      via1: 20
+    nwell:
+      pdiffusion: 100
+    pwell:
+      ndiffusion: 100
+
+via:
+  via_weights:
+    metal1:
+      ndiffusion: 500
+      pdiffusion: 500
+      poly: 500
+      metal2: 400
+  multi_via:
+    metal1:
+      poly: 1
+      metal2: 1
+
+via_connectivity:
+  - {via: ndiff_contact, bottom: ndiffusion, top: metal1}
+  - {via: pdiff_contact, bottom: pdiffusion, top: metal1}
+  - {via: poly_contact, bottom: poly, top: metal1}
+  - {via: via1, bottom: metal1, top: metal2}
+
+output_map:
+  ndiffusion: [1, 0]
+  pdiffusion: [1, 7]
+  nwell:
+    - [2, 0]
+    - [2, 1]
+  pwell:
+    - [2, 7]
+  poly: [3, 0]
+  poly_contact: [4, 0]
+  ndiff_contact: [5, 0]
+  pdiff_contact: [5, 1]
+  metal1: [6, 0]
+  metal1_label: [6, 1]
+  metal1_pin: [6, 2]
+  via1: [7, 0]
+  metal2: [8, 0]
+  metal2_label: [8, 1]
+  metal2_pin: [8, 2]
+  abutment_box: [200, 0]
+
+writers:
+  - type: lef
+    db_unit: 1.0e-6
+    site: CORE
+  - type: gds

@@ -1,0 +1,9 @@
+# Same-node track migration: 7T -> 6T (extreme downward)
+# Very tight routing — complex cells likely infeasible
+
+source_node: "180nm_7t"
+target_node: "180nm_6t"
+scale_factor: 1.0
+
+fixed_values:
+  cell.num_tracks: 6

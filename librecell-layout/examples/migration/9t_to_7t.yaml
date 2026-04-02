@@ -1,0 +1,9 @@
+# Same-node track migration: 9T -> 7T (downward)
+# Risk: reduced routing resources
+
+source_node: "180nm_9t"
+target_node: "180nm_7t"
+scale_factor: 1.0
+
+fixed_values:
+  cell.num_tracks: 7

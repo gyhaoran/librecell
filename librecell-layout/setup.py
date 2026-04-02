@@ -41,6 +41,7 @@ setup(name='librecell-layout',
       entry_points={
           'console_scripts': [
               'lclayout = lclayout.standalone:main',
+              'lclayout-migrate = lclayout.standalone:migrate_main',
               # 'drc_cleaner = lclayout.drc_cleaner.standalone:main',
           ]
       },

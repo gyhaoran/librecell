@@ -1,0 +1,10 @@
+# Cross-node migration: 90nm -> 55nm
+# Scale factor = 55/90 ≈ 0.611
+
+source_node: "90nm"
+target_node: "55nm"
+scale_factor: 0.611
+
+fixed_values:
+  node: "55nm"
+  db_unit: 1.0e-9

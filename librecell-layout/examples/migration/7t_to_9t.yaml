@@ -1,0 +1,9 @@
+# Same-node track migration: 7T -> 9T (upward)
+# Only Y-direction parameters change
+
+source_node: "180nm_7t"
+target_node: "180nm_9t"
+scale_factor: 1.0
+
+fixed_values:
+  cell.num_tracks: 9
