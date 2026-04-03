@@ -35,7 +35,7 @@ class TransistorLayout:
         :param distance_to_outline: TODO: This should be put into the `tech`.
         :param tech: Technology specific designrules.
         """
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def terminal_nodes(self) -> Dict[str, List[Tuple[str, Tuple[int, int]]]]:
         """
@@ -63,7 +63,7 @@ class TransistorLayout:
         :param shapes: Dict[layer name, pya.Shapes]
           A dict mapping layer names to pya.Shapes.
         """
-        raise NotImplemented()
+        raise NotImplementedError()
 
 
 class DefaultTransistorLayout(TransistorLayout):

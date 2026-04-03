@@ -160,7 +160,7 @@ def _evaluate(lower_row: List[Transistor], upper_row: List[Transistor]) -> float
             else:
                 nets[node.drain_net].append(coord)
 
-    for node in upper_row:
+    for x, node in enumerate(upper_row):
         if node is not None:
             coord = (x, 1)
             if node.source_net not in nets:

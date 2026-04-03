@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
@@ -26,17 +27,37 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# YAML load / save
+# YAML load / save  (with file-based cache keyed on abs path + mtime)
 # ---------------------------------------------------------------------------
 
+_tech_yaml_cache: Dict[Tuple[str, float], TechConfig] = {}
+
+
 def load_tech_yaml(path: str) -> TechConfig:
-    """Load a TechConfig from a YAML file."""
-    logger.info("Loading YAML tech file: %s", path)
-    with open(path, "r", encoding="utf-8") as fh:
+    """Load a TechConfig from a YAML file.
+
+    Results are cached by (absolute path, mtime) so repeated loads of the
+    same unchanged file skip YAML parsing and Pydantic validation.
+    """
+    abs_path = os.path.abspath(path)
+    try:
+        mtime = os.path.getmtime(abs_path)
+    except OSError:
+        mtime = 0.0
+    cache_key = (abs_path, mtime)
+    if cache_key in _tech_yaml_cache:
+        logger.debug("Cache hit for %s", abs_path)
+        return _tech_yaml_cache[cache_key].model_copy(deep=True)
+
+    logger.info("Loading YAML tech file: %s", abs_path)
+    with open(abs_path, "r", encoding="utf-8") as fh:
         data = yaml.safe_load(fh)
     if data is None:
-        raise ValueError(f"Empty YAML file: {path}")
-    return TechConfig.model_validate(data)
+        from lccommon.exceptions import TechConfigError
+        raise TechConfigError(f"Empty YAML file: {path}")
+    config = TechConfig.model_validate(data)
+    _tech_yaml_cache[cache_key] = config
+    return config.model_copy(deep=True)
 
 
 def save_tech_yaml(config: TechConfig, path: str) -> None:
@@ -47,8 +68,13 @@ def save_tech_yaml(config: TechConfig, path: str) -> None:
                  "_via_weights_cache", "_multi_via_cache"},
         exclude_none=True,
     )
-    with open(path, "w", encoding="utf-8") as fh:
+    abs_path = os.path.abspath(path)
+    with open(abs_path, "w", encoding="utf-8") as fh:
         yaml.dump(data, fh, default_flow_style=False, sort_keys=False, allow_unicode=True)
+    # Invalidate any cached entry for this path (any mtime)
+    keys_to_remove = [k for k in _tech_yaml_cache if k[0] == abs_path]
+    for k in keys_to_remove:
+        del _tech_yaml_cache[k]
 
 
 # ---------------------------------------------------------------------------

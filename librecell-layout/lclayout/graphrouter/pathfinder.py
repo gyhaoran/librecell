@@ -188,7 +188,8 @@ def _route(detail_router: SignalRouter,
     for j in count():
 
         if j >= max_iterations:
-            raise Exception("Failed to route")
+            from lccommon.exceptions import RoutingError
+            raise RoutingError("Pathfinder failed to route after {} iterations".format(max_iterations))
 
         logger.info('Routing iteration %d' % j)
 

@@ -194,7 +194,8 @@ class SMTPlacer(TransistorPlacer):
         if not sat:
             msg = "Placement problem not satisfiable."
             logger.error(msg)
-            raise Exception(msg)
+            from lccommon.exceptions import PlacementError
+            raise PlacementError(msg)
 
         # logger.debug("model = %s", opt.model())
 

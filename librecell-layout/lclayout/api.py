@@ -153,6 +153,7 @@ def generate_cell_library(
     tech_config: Union[str, "TechConfig"],
     output_dir: str,
     continue_on_error: bool = False,
+    num_workers: int = 1,
     **kwargs,
 ) -> dict:
     """Generate multiple standard cells.
@@ -163,6 +164,7 @@ def generate_cell_library(
         tech_config: Path to tech YAML or TechConfig instance.
         output_dir: Directory for output files.
         continue_on_error: If True, continue on individual cell failures.
+        num_workers: Number of parallel workers (1 = sequential).
         **kwargs: Additional arguments passed to generate_cell().
 
     Returns:
@@ -178,22 +180,56 @@ def generate_cell_library(
     results: Dict[str, dict] = {}
     failures: Dict[str, str] = {}
 
-    for cell_name in cell_list:
-        try:
-            logger.info("Generating cell: %s", cell_name)
-            result = generate_cell(
-                cell_name=cell_name,
-                netlist_path=netlist_path,
-                tech_config=tech_config,
-                output_dir=output_dir,
-                **kwargs,
-            )
-            results[cell_name] = result
-        except Exception as e:
-            logger.error("Failed to generate cell '%s': %s", cell_name, e)
-            failures[cell_name] = str(e)
-            if not continue_on_error:
-                break
+    if num_workers > 1 and len(cell_list) > 1:
+        from concurrent.futures import ProcessPoolExecutor, as_completed
+
+        # For multiprocessing, tech_config must be a path string
+        if not isinstance(tech_config, str):
+            logger.warning("Parallel generation requires tech_config as path; falling back to sequential")
+            num_workers = 1
+
+    if num_workers <= 1 or len(cell_list) <= 1:
+        # Sequential generation
+        for cell_name in cell_list:
+            try:
+                logger.info("Generating cell: %s", cell_name)
+                result = generate_cell(
+                    cell_name=cell_name,
+                    netlist_path=netlist_path,
+                    tech_config=tech_config,
+                    output_dir=output_dir,
+                    **kwargs,
+                )
+                results[cell_name] = result
+            except Exception as e:
+                logger.error("Failed to generate cell '%s': %s", cell_name, e)
+                failures[cell_name] = str(e)
+                if not continue_on_error:
+                    break
+    else:
+        # Parallel generation using ProcessPoolExecutor
+        from concurrent.futures import ProcessPoolExecutor, as_completed
+
+        with ProcessPoolExecutor(max_workers=num_workers) as executor:
+            future_to_cell = {
+                executor.submit(
+                    generate_cell,
+                    cell_name=cell_name,
+                    netlist_path=netlist_path,
+                    tech_config=tech_config,
+                    output_dir=output_dir,
+                    **kwargs,
+                ): cell_name
+                for cell_name in cell_list
+            }
+            for future in as_completed(future_to_cell):
+                cell_name = future_to_cell[future]
+                try:
+                    result = future.result()
+                    results[cell_name] = result
+                except Exception as e:
+                    logger.error("Failed to generate cell '%s': %s", cell_name, e)
+                    failures[cell_name] = str(e)
 
     return {
         "success_count": len(results),

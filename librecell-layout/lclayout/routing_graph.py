@@ -36,7 +36,7 @@ def create_routing_graph_base(grid: Grid2D, tech, via_layers) -> nx.Graph:
     :param tech: module containing technology information
     :return: nx.Graph
     """
-    logging.debug('Create routing graph.')
+    logger.debug('Create routing graph.')
 
     # Create routing graph.
 

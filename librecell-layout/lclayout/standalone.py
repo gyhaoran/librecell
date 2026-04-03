@@ -503,36 +503,69 @@ class LcLayout:
             # both for routing. This is used to avoid spacing violations during routing.
             logger.debug("Find conflicting nodes.")
             conflicts = dict()
-            # Loop through all nodes in the routing graph G.
+
+            # Build per-layer spatial index (grid-cell bucketing) for O(N log N) conflict detection.
+            # Group physical nodes by layer for fast lookup.
+            nodes_by_layer = defaultdict(list)
             for n in G:
-                # Skip virtual nodes which have no physical representation.
+                if not _is_virtual_node_fn(n):
+                    layer, point = n
+                    nodes_by_layer[layer].append(point)
+
+            # Pre-compute max margin across all spacing rules to determine bucket size.
+            max_margin = 1
+            for layer_name in spacing_graph:
+                if layer_name not in tech.routing_layers:
+                    continue
+                wire_width1 = tech.wire_width.get(layer_name, 0) // 2
+                for other_layer in spacing_graph[layer_name]:
+                    if other_layer in tech.routing_layers:
+                        wire_width2 = tech.wire_width.get(other_layer, 0) // 2
+                        min_spacing = spacing_graph[layer_name][other_layer]['min_spacing']
+                        m = wire_width1 + wire_width2 + min_spacing
+                        if m > max_margin:
+                            max_margin = m
+
+            bucket_size = max(int(max_margin), 1)
+
+            # Build grid-cell index per layer: bucket_key -> list of points
+            grid_index = {}
+            for layer_name, points in nodes_by_layer.items():
+                buckets = defaultdict(list)
+                for p in points:
+                    bx = int(p[0]) // bucket_size
+                    by = int(p[1]) // bucket_size
+                    buckets[(bx, by)].append(p)
+                grid_index[layer_name] = buckets
+
+            # Loop through all physical nodes in the routing graph.
+            for n in G:
                 if not _is_virtual_node_fn(n):
                     layer, point = n
                     wire_width1 = tech.wire_width.get(layer, 0) // 2
                     node_conflicts = set()
                     if layer in spacing_graph:
-                        # If there is a spacing rule defined involving `layer` then
-                        # loop through all layers that have a spacing rule defined
-                        # relative to the layer of the current node n.
+                        px, py = int(point[0]), int(point[1])
                         for other_layer in spacing_graph[layer]:
-                            if other_layer in tech.routing_layers:
-                                # Find minimal spacing of nodes such that spacing rule is asserted.
+                            if other_layer in tech.routing_layers and other_layer in grid_index:
                                 wire_width2 = tech.wire_width.get(other_layer, 0) // 2
                                 min_spacing = spacing_graph[layer][other_layer]['min_spacing']
-                                margin = (wire_width1 + wire_width2 + min_spacing)
+                                margin = wire_width1 + wire_width2 + min_spacing
 
-                                # Find nodes that are closer than the minimal spacing.
-                                # conflict_points = grid.neigborhood(point, margin, norm_ord=1)
-                                potential_conflicts = [x for x in G if x[0] == other_layer]
-                                conflict_points = [p for (_, p) in potential_conflicts
-                                                   if numpy.linalg.norm(numpy.array(p) - numpy.array(point),
-                                                                        ord=1) < margin
-                                                   ]
-                                # Construct the lookup table for conflicting nodes.
-                                for p in conflict_points:
-                                    conflict_node = other_layer, p
-                                    if conflict_node in G:
-                                        node_conflicts.add(conflict_node)
+                                # Search only nearby grid buckets
+                                search_range = int(margin // bucket_size) + 1
+                                bx0 = px // bucket_size
+                                by0 = py // bucket_size
+                                other_buckets = grid_index[other_layer]
+                                for dbx in range(-search_range, search_range + 1):
+                                    for dby in range(-search_range, search_range + 1):
+                                        bucket_key = (bx0 + dbx, by0 + dby)
+                                        if bucket_key in other_buckets:
+                                            for p in other_buckets[bucket_key]:
+                                                if abs(p[0] - point[0]) + abs(p[1] - point[1]) < margin:
+                                                    conflict_node = (other_layer, p)
+                                                    if conflict_node in G:
+                                                        node_conflicts.add(conflict_node)
                     if node_conflicts:
                         conflicts[n] = node_conflicts
 
@@ -898,6 +931,8 @@ def main():
                         help="don't show any information except fatal events (overwrites --verbose)")
     parser.add_argument('--log', required=False, metavar='LOG_FILE', type=str,
                         help='write log to this file instead of stdout')
+    parser.add_argument('--json-log', action='store_true',
+                        help='output logs in structured JSON format')
 
     # Parse arguments
     args = parser.parse_args()
@@ -909,10 +944,9 @@ def main():
         log_level = logging.FATAL
 
     # Setup logging
-    logging.basicConfig(format='%(asctime)s %(module)16s %(levelname)8s: %(message)s',
-                        datefmt="%Y-%m-%d %H:%M:%S",
-                        level=log_level,
-                        filename=args.log)
+    from lccommon.logging_config import setup_logging
+    setup_logging(level=log_level, log_file=args.log,
+                  json_format=getattr(args, 'json_log', False))
 
     # Load netlist of cell
     cell_name = args.cell

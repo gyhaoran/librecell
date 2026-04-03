@@ -57,7 +57,8 @@ class CellConfig(BaseModel):
         elif has_tracks:
             self.unit_cell_height = self.num_tracks * self.track_pitch
         else:
-            raise ValueError(
+            from lccommon.exceptions import TechConfigError
+            raise TechConfigError(
                 "Must provide unit_cell_height, or both num_tracks and track_pitch"
             )
 
@@ -229,6 +230,14 @@ class TechConfig(BaseModel):
     # Optional extensions
     extensions: Dict[str, Any] = {}
 
+    # Process type: "planar" for conventional MOSFET, "finfet" reserved for future
+    process_type: str = "planar"
+
+    # FinFET parameters (reserved for future use, not yet processed by layout engine)
+    fin_pitch: Optional[float] = None
+    fin_width: Optional[float] = None
+    num_fins_per_device: Optional[int] = None
+
     # Private cached fields
     _writer_instances: Optional[List] = PrivateAttr(default=None)
     _output_map_cache: Optional[Dict] = PrivateAttr(default=None)
@@ -249,7 +258,8 @@ class TechConfig(BaseModel):
             if self.cell.track_pitch is not None:
                 self.routing.routing_grid_pitch_y = self.cell.track_pitch
             else:
-                raise ValueError(
+                from lccommon.exceptions import TechConfigError
+                raise TechConfigError(
                     "routing_grid_pitch_y must be set, or cell.track_pitch must be provided"
                 )
         elif self.cell.track_pitch is not None:

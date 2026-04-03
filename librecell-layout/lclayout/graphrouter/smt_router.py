@@ -302,7 +302,8 @@ def min_steiner_tree(
             logger.info('unsat core: %s', list(core.keys()))
             logger.debug('unsat core: %s', core)
 
-        raise Exception(msg)
+        from lccommon.exceptions import RoutingError
+        raise RoutingError(msg)
 
 
 def test_mip_route():

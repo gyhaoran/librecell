@@ -366,7 +366,8 @@ def min_steiner_trees(
     else:
         msg = 'Problem not solved: {}'.format(LpStatus[problem.status])
         logger.error(msg)
-        raise Exception(msg)
+        from lccommon.exceptions import RoutingError
+        raise RoutingError(msg)
 
 
 def test_lp_route():

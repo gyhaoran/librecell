@@ -87,7 +87,8 @@ def load_transistor_netlist(path: str, circuit_name: str, force_lowercase: bool 
         all_circuits = [c.name for c in netlist.each_circuit()]
         logger.error("No such circuit: {}".format(circuit_name))
         logger.info(f"Circuits in netlist: {all_circuits}")
-        raise Exception("No such circuit: {}".format(circuit_name))
+        from lccommon.exceptions import NetlistError
+        raise NetlistError("No such circuit: {}".format(circuit_name))
 
     pins = [f(p.name()) for p in circuit.each_pin()]
 
