@@ -1,0 +1,207 @@
+name: cmos_55nm
+node: 55nm
+db_unit: 1.0e-09
+cell:
+  unit_cell_width: 244.0
+  unit_cell_height: 1466.0
+  gate_length: 55.0
+  gate_extension: 61.0
+  transistor_offset_y: 77.0
+  power_rail_width: 220.0
+  minimum_gate_width_nfet: 122.0
+  minimum_gate_width_pfet: 122.0
+  minimum_pin_width: 31.0
+  transistor_channel_width_sizing: 1.0
+  pin_layer: metal2
+  power_layer: metal2
+routing:
+  routing_grid_pitch_x: 122.0
+  routing_grid_pitch_y: 183.0
+  grid_offset_x: 122.0
+  grid_offset_y: 92.0
+  orientation_change_penalty: 100.0
+  routing_layers:
+    ndiffusion: ''
+    pdiffusion: ''
+    poly: hv
+    metal1: hv
+    metal2: hv
+  wire_width:
+    poly: 61.0
+    metal1: 61.0
+    metal2: 61.0
+  wire_width_horizontal:
+    poly: 61.0
+    metal1: 61.0
+    metal2: 61.0
+  via_size:
+    poly_contact: 49.0
+    pdiff_contact: 49.0
+    ndiff_contact: 49.0
+    via1: 61.0
+  weights_horizontal:
+    poly: 2.0
+    metal1: 1.0
+    metal2: 1.0
+  weights_vertical:
+    poly: 2.0
+    metal1: 1.0
+    metal2: 2.0
+  connectable_layers:
+  - nwell
+drc:
+  minimum_width:
+    poly: 55.0
+    metal1: 61.0
+    metal2: 61.0
+  minimum_notch:
+    ndiffusion: 31.0
+    pdiffusion: 31.0
+    poly: 31.0
+    metal1: 31.0
+    metal2: 31.0
+    nwell: 31.0
+  min_area:
+    metal1: 6110.0
+    metal2: 6110.0
+  min_spacing:
+    ndiffusion:
+      ndiffusion: 31.0
+      poly_contact: 6.0
+    pdiffusion:
+      pdiffusion: 31.0
+      ndiffusion: 31.0
+      poly_contact: 6.0
+    nwell:
+      nwell: 31.0
+      pwell: 0.0
+    pwell:
+      pwell: 31.0
+    poly:
+      nwell: 31.0
+      ndiffusion: 31.0
+      pdiffusion: 31.0
+      poly: 31.0
+      ndiff_contact: 6.0
+      pdiff_contact: 6.0
+    metal1:
+      metal1: 31.0
+    metal2:
+      metal2: 61.0
+  minimum_enclosure:
+    ndiffusion:
+      ndiff_contact: 6.0
+    pdiffusion:
+      pdiff_contact: 6.0
+    poly:
+      poly_contact: 6.0
+    metal1:
+      ndiff_contact: 6.0
+      pdiff_contact: 6.0
+      poly_contact: 6.0
+      via1: 12.0
+    metal2:
+      via1: 12.0
+    nwell:
+      pdiffusion: 61.0
+    pwell:
+      ndiffusion: 61.0
+via:
+  via_weights:
+    metal1:
+      ndiffusion: 500.0
+      pdiffusion: 500.0
+      poly: 500.0
+      metal2: 400.0
+  multi_via:
+    metal1:
+      poly: 1
+      metal2: 1
+layers: []
+vias: []
+via_connectivity:
+- via: ndiff_contact
+  bottom: ndiffusion
+  top: metal1
+- via: pdiff_contact
+  bottom: pdiffusion
+  top: metal1
+- via: poly_contact
+  bottom: poly
+  top: metal1
+- via: via1
+  bottom: metal1
+  top: metal2
+power_domains:
+- name: default
+  supply_net: VDD
+  ground_net: VSS
+  is_high_voltage: false
+bcd:
+  enabled: false
+  thick_oxide_layer: thick_oxide
+  hv_nwell_layer: hv_nwell
+  hv_pwell_layer: hv_pwell
+scripts:
+  custom_drc: []
+  layer_postprocess: []
+  on_after_placement: []
+  on_after_routing: []
+  on_before_output: []
+output_map:
+  ndiffusion:
+  - 1
+  - 0
+  pdiffusion:
+  - 1
+  - 7
+  nwell:
+  - - 2
+    - 0
+  - - 2
+    - 1
+  pwell:
+  - - 2
+    - 7
+  poly:
+  - 3
+  - 0
+  poly_contact:
+  - 4
+  - 0
+  ndiff_contact:
+  - 5
+  - 0
+  pdiff_contact:
+  - 5
+  - 1
+  metal1:
+  - 6
+  - 0
+  metal1_label:
+  - 6
+  - 1
+  metal1_pin:
+  - 6
+  - 2
+  via1:
+  - 7
+  - 0
+  metal2:
+  - 8
+  - 0
+  metal2_label:
+  - 8
+  - 1
+  metal2_pin:
+  - 8
+  - 2
+  abutment_box:
+  - 200
+  - 0
+writers:
+- type: lef
+  db_unit: 1.0e-06
+  site: CORE
+- type: gds
+extensions: {}

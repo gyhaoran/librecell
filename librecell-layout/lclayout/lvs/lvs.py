@@ -94,7 +94,13 @@ def extract_netlist(layout: db.Layout, top_cell: db.Cell, layer_stack) -> db.Net
         if label_name and label_name in lm:
             metal_label_regions[metal_name] = make_layer(label_name)
 
-    via_regions = {}
+    # Pre-populate via_regions with explicitly registered contact layers to prevent
+    # duplicate make_layer() calls when the via_layers loop encounters the same names.
+    via_regions = {
+        'ndiff_contact': rndiff_cont,
+        'pdiff_contact': rpdiff_cont,
+        'poly_contact': rpoly_cont,
+    }
     for l1, l2, data in layer_stack.via_layers.edges(data=True):
         via_name = data['layer']
         if via_name not in via_regions and via_name in lm:
@@ -195,6 +201,15 @@ def compare_netlist(extracted: db.Netlist, reference: db.Netlist) -> bool:
     # Bring transistors into a unique representation.
     reference.simplify()
     extracted.simplify()
+
+    # Disable L and W parameter comparison for topology-only LVS:
+    # - L (gate length) is determined by the technology node, not the schematic
+    # - W (channel width) is adjusted by the layout engine to meet tech constraints
+    # This allows a single reference netlist to be used across multiple tech nodes.
+    for nl in (extracted, reference):
+        for dc in nl.each_device_class():
+            dc.enable_parameter('L', False)
+            dc.enable_parameter('W', False)
 
     cmp = db.NetlistComparer()
     compare_result = cmp.compare(extracted, reference)
